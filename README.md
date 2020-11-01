@@ -1,2 +1,2 @@
 # RasPiAutomation
-hardware control for JoKiAutomation
+ hardware control for JokiAutomation App
