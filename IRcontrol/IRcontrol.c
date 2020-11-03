@@ -15,24 +15,10 @@
 #include "timer.h"
 
 IR_Data IR_sequences[NUM_SEQ][SEQ_SIZE];
-unsigned int sendTrailingPulse = 1;	// 1 = Send a trailing pulse with duration equal to "onePulse"
-	                                // 0 = Don't send a trailing pulse
-//double dutyCycle = 0.5;           // The duty cycle of the IR signal. 0.5 means for every cycle,
-                                    // the LED will turn on for half the cycle time, and off the other half
+
 
 systemtimer timeoutTimer;			// function timeout timer (3 seconds limit)
 
-/*outPin,
-		frequency,
-		dutyCycle,
-		leadingPulseDuration,
-		leadingGapDuration,
-		onePulse,
-		zeroPulse,
-		oneGap,
-		zeroGap,
-		sendTrailingPulse,
-		"01000001101101100101100010100111");*/
 
 // initialize IR interface
 unsigned char IR_init(void)
@@ -49,30 +35,7 @@ unsigned char IR_init(void)
 			IR_sequences[i][j].signal = 0;
 		}
 	}
-///////////////////////////testsequence//////////////////////////////
-//	IR_sequences[0][0].signal = 1;
-//	IR_sequences[0][0].IR_Time = _LEADING_PULSE_DURATION_;
-//	IR_sequences[0][1].signal = 0;
-//	IR_sequences[0][1].IR_Time = _LEADING_GAP_DURATION_;
-//	IR_sequences[0][2].signal = 1;
-//	IR_sequences[0][2].IR_Time = _ON_PULSE_;
-//	IR_sequences[0][3].signal = 0;
-//	IR_sequences[0][3].IR_Time = _ON_GAP_;
-//	IR_sequences[0][4].signal = 0;
-//	IR_sequences[0][4].IR_Time = _OFF_PULSE_;
-//	IR_sequences[0][5].signal = 0;
-//	IR_sequences[0][5].IR_Time = _OFF_GAP_;
-//	IR_sequences[0][6].signal = 1;
-//	IR_sequences[0][6].IR_Time = _ON_PULSE_;
-//	IR_sequences[0][7].signal = 0;
-//	IR_sequences[0][7].IR_Time = _ON_GAP_;
-//	IR_sequences[0][8].signal = 1;
-//	IR_sequences[0][8].IR_Time = _ON_PULSE_;
-//	IR_sequences[0][9].signal = 0;
-//	IR_sequences[0][9].IR_Time = _ON_GAP_;
 
-///////////////////////////testsequence//////////////////////////////
-//	IR_writeDatFile();
 	result = IR_readDatFile();
 	return(result);
 
@@ -172,7 +135,6 @@ unsigned char IR_SequenceIn(unsigned char seqID)
 						startMeasurement(&timeoutTimer);// restart timeout timer
 						prevTeacheData = teachData;
 						IR_sequences[seqID][i].signal = (unsigned char) teachData;  // set sequence signal level
-      /////todo hier Zeit prüfen 9 ms leading pulse und i >0 ? Abbruch komplett, i auf SEQ_SiZE setzen
 						break;
 					}
 					if(isExpired(IR_SEQUENCE_TEACHED,&timeoutTimer)==1) // loop timed out ?

@@ -3,6 +3,7 @@
 #include "ComInt.h"
 #include "timer.h"
 #include "system.h"
+#include "AudioControl.h"
 
 #define RASPI_AUTOMATION_SUCCESS 0 // return value application finished successful
 #define RASPI_AUTOMATION_CALL_FAILURE 1 // error in application call to much, less or wrong arguments
@@ -16,7 +17,6 @@ int main(int argc, char *argv[])
 	{
 		SYSTEM_Initialize();
 		initSystemTimer();
-		result = IR_init();
 		result = CIexecuteCommand(argv);
 	}
 	else
