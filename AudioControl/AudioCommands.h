@@ -14,6 +14,7 @@
     #define FADEUP 0x30
     #define FADEDOWN 0x40
     #define FADESTOP 0x50
+    #define AUDIO_RESET 0x60
 
     char GET_VERSION[] = "(MX?:VERS)";     // get software version
 	char SET_ACTIVE[]  = "(MX*:M:----)";
@@ -23,6 +24,6 @@
 	char FADE_STOP[]   = "(MX*:*:xxxx)";
 	char RESET[]       = "(MX*:RES!)";      // reset Audioswitch sets all adjustments to 0
 	char MUTESTATE[]   = "(MX?:MUTE)";
-	char VOL1[] = "(MX?:VOL1)";
+	char VOL1[]        = "(MX?:VOL1)";
 
 #endif /* AUDIOCONTROL_AUDIOCOMMANDS_H_ */
