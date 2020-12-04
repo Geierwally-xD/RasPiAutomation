@@ -53,6 +53,8 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 	{
 		if(IR_sequences[seqID][0].IR_Time > 0)
 		{
+		  for(int j = 0; j<2; j++)
+		  {
 			for(int i = 0; i< SEQ_SIZE; i++) // switch IR sequence
 			{
 				if(IR_sequences[seqID][i].IR_Time > 0)
@@ -83,12 +85,13 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 					break;
 				}
 			}
+			wait(1000000);
+		  }
 		}
 		else
 		{
 			result = IR_SEQ_EMPTY;
 		}
-
 	}
 	else
 	{
@@ -107,6 +110,11 @@ unsigned char IR_SequenceIn(unsigned char seqID)
 	int teachData = 1;
 	if(seqID < NUM_SEQ)
 	{
+		for(int i = 0; i< SEQ_SIZE; i++) // switch IR sequence
+		{
+			IR_sequences[seqID][i].IR_Time = 0;
+			IR_sequences[seqID][i].signal = 0;
+		}
 		startMeasurement(&timeoutTimer);
 
 		while(teachData == prevTeacheData) // wait for leading rising edge

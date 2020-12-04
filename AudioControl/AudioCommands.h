@@ -9,13 +9,6 @@
 #ifndef AUDIOCONTROL_AUDIOCOMMANDS_H_
 #define AUDIOCONTROL_AUDIOCOMMANDS_H_
 
-    #define ACTIVE 0x10
-    #define VOLUME 0x20
-    #define FADEUP 0x30
-    #define FADEDOWN 0x40
-    #define FADESTOP 0x50
-    #define AUDIO_RESET 0x60
-
     char GET_VERSION[] = "(MX?:VERS)";     // get software version
 	char SET_ACTIVE[]  = "(MX*:M:----)";
 	char SET_VOLUME[]  = "(MX*:S:xxxx:63)"; // set volume of all inputs (range 00 - 63)

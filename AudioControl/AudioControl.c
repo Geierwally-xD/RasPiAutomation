@@ -22,6 +22,57 @@ int streamlength = 0;
 char versionString[]="                    ";
 char testString[]="                    ";
 
+
+AC_Data aC_Data;
+
+// write active audio channel into datfile
+unsigned char AC_writeDatFile(void)
+{
+	unsigned char result = AC_SUCCESS;
+	FILE *write_ptr;
+
+	write_ptr = fopen("CI_Dat.bin","wb");  // w for write, b for binary
+	if(write_ptr != NULL)
+	{
+		fwrite(&aC_Data,sizeof(aC_Data),1,write_ptr);
+		fclose(write_ptr);
+	}
+	else
+	{
+		result = AC_WRITE_FAILED;
+	}
+	return(result);
+}
+
+// read and set active audio channel from datfile
+unsigned char AC_readDatFile(void)
+{
+	unsigned char result = AC_SUCCESS;
+	FILE *read_ptr;
+
+	read_ptr = fopen("CI_Dat.bin","rb");  // r for read, b for binary
+	if(read_ptr != NULL)
+	{
+		fread(&aC_Data,sizeof(aC_Data),1,read_ptr); // read 10 bytes to our buffer
+		fclose(read_ptr);
+	}
+	else
+	{
+		result = AC_READ_FAILED;
+	}
+	return(result);
+}
+
+unsigned char ACinit(void)
+{
+	unsigned char result = AC_SUCCESS;
+	aC_Data.activeAudioChannel = 0x02; // activate audio channel 2 (sumary signal) default
+	// not necessary result |= AC_Execute((unsigned char)ACTIVE + 0x0f); // activate audio channels 1, 2, 3 and 4
+	result |= AC_readDatFile(); // read in last active audio channel from file 
+    return(result);
+}
+
+
 // open  audio control interface
 unsigned char AC_open(void)
 {
@@ -197,19 +248,19 @@ unsigned char AC_Execute(unsigned char index)
 
 	result = AC_open(); // open COM Port
 	if(result == AC_SUCCESS)
-	{
-		if(sequence == AC_INIT_SEQUENCE)
-		{   // reset Audiomix on set active command
-			result |=  AC_write(RESET,sizeof(RESET));
-			wait(50); // wait 50 us before sending next command sequence to COM port
-			result |=  AC_GetVersion();
-			wait(50); // wait 50 us before sending next command sequence to COM port
-		}
+	{   // this part is only necessary only for maintenance to get firmware version of audiomix
+		/*if(sequence == AC_INIT_SEQUENCE)
+		   {  reset Audiomix on set active command
+			  result |=  AC_write(RESET,sizeof(RESET));
+			  wait(100000); // wait 100 ms before sending next command sequence to COM port
+			  result |=  AC_GetVersion();
+			  wait 20000); // wait 20 ms before sending next command sequence to COM port
+		   }*/
 
 		result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
 		if(sequence > AC_SINGLE_SEQUENCE)
 		{
-			wait(50); // wait 50 us before sending next command sequence to COM port
+			wait(100000); // wait 100 ms before sending next command sequence to COM port
 			result |=  AC_write(&commandString2[0],commandlength2); // send second commandd sequence to Audiomix
 		}
 	}
