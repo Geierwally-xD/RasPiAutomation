@@ -34,5 +34,6 @@
 void SYSTEM_Initialize (void);
 void initTimer1(void);
 void alarmWakeup(int sig_num);
+extern long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max);
 
 #endif

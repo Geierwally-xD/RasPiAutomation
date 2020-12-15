@@ -10,6 +10,7 @@
 #include "ComInt.h"
 #include "IRcontrol.h"
 #include "AudioControl.h"
+#include "timer.h"
 
 
 
@@ -70,7 +71,7 @@ unsigned char CIsequencer(unsigned char index)
 	switch(index)
 	{
 		case CI_PAUSE:         //1  pause sequence
-			result |= AC_Execute((unsigned char)FADEUP + 0x01); // fade up audio channel 1 and fade down 2 - 4
+			result |= AC_Execute((unsigned char)AUDIO_PROFILE + AC_SLIDERSHOW); // audio profile Diashow
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -82,7 +83,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_TIMER:         //2  timer sequence
-			result |= AC_Execute((unsigned char)FADEUP + 0x01); // fade up audio channel 1 and fade down 2 - 4
+			result |= AC_Execute((unsigned char)AUDIO_PROFILE + AC_SLIDERSHOW); // audio profile Diashow
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -92,9 +93,13 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
 			}
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(12); // start backup recorder
+			}
 		break;
 		case CI_PPP_VIEW:       //3  power point view
-			result = AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_BAND);  // audio profile Band
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -106,7 +111,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_GOPRO_VIEW:     //4  gopro action cam view
-			result = AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile Gottesdienst
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -114,7 +119,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_POSCAM_VIEW:    //5  camcorder with position control view
-			result = AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile Gottesdienst
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -122,7 +127,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_PREACHER_VIEW:  //6  camcorder 2 control view
-			result = AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_PREACHING);  // audio profile Predigt
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -130,7 +135,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_PRAYER_VIEW:    //7  combination ppp view with gopro action cam view
-			result = AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_TEXT );  // audio profile text
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -141,25 +146,10 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(5);   // Beamer HDMI 1
 			}
 		break;
-		case CI_AUDIO_SUMARY:  //8 audioswitch activate sumary signal (channel 2)
-			aC_Data.activeAudioChannel = 0x02;
-			result |= AC_writeDatFile();
-			result |= AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
-		break;
-		case CI_AUDIO_INPUT_3: //9 audioswitch activate channel 3
-			aC_Data.activeAudioChannel = 0x04;
-			result |= AC_writeDatFile();
-			result |= AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 3 and fade down 1, 3 and 4
-		break;
-		case CI_AUDIO_INPUT_4: //10 audioswitch activate channel 4
-			aC_Data.activeAudioChannel = 0x08;
-			result |= AC_writeDatFile();
-			result |= AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 4 and fade down 1, 3 and 4
-		break;
 		case CI_RESET: //11 reset audio - to sumary signal and IR to laptop view
-			aC_Data.activeAudioChannel = 0x02;
+			aC_Data.activeAudioProfile = AC_WORSHIP;
 			result |= AC_writeDatFile();
-			result |= AC_Execute((unsigned char)FADEUP + aC_Data.activeAudioChannel);  // fade up audio channel 2 and fade down 1, 3 and 4
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile Gottesdienst
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -185,7 +175,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_BEAMER_ANALOG:  //14 switch Beamer to analog input (video from CD)
-			result |= AC_Execute((unsigned char)FADEUP + 0x01); // fade up audio channel 1 and fade down 2 - 4
+			result |= AC_Execute((unsigned char)AUDIO_PROFILE + AC_SLIDERSHOW); // audio profile Diashow
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -196,11 +186,19 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(7); // Beamer analog
 			}
 		break;
+		case CI_BEAMER_MUTE:  //16 mute/demute Beamer
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(8); // Mute/ Demute Beamer
+			}
+		break;
 		case CI_SHUTDOWN:  //15 switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
 			result |= IR_init();
 			result |= IR_SequenceOut(9); // switch off Beamer
 			result |= IR_SequenceOut(9); // switch off Beamer twice necessary
 			result |= IR_SequenceOut(10); // switch off HDMI switch
+			result |= IR_SequenceOut(13); // stop backup recorder
 			result |= IR_SequenceOut(11); // switch off backup recorder
 			system("sudo shutdown -h now");
 		break;
@@ -242,6 +240,9 @@ unsigned char CIexecuteCommand(char *argv[])
 		break;
 		case CI_AUDIO_SWITCH: // audio switch command
 			result = AC_Execute((unsigned char)index);
+		break;
+		case CI_AUDIO_TEACH: // teach audio profile
+			result = AC_Teach(index);
 		break;
 		case CI_SEQUENCE: // command sequence
 			result = CIsequencer((unsigned char)index);

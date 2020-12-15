@@ -53,7 +53,7 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 	{
 		if(IR_sequences[seqID][0].IR_Time > 0)
 		{
-		  for(int j = 0; j<2; j++)
+		  for(int j = 0; j<IR_RETRY[seqID]; j++) // retry counter
 		  {
 			for(int i = 0; i< SEQ_SIZE; i++) // switch IR sequence
 			{

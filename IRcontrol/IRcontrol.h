@@ -39,6 +39,8 @@
 		unsigned long long IR_Time; // The signal time in microseconds
 	}IR_Data;
 
+	static const unsigned char IR_RETRY[NUM_SEQ] = {2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1 };
+
     extern unsigned char IR_init(void);
     extern unsigned char IR_SequenceOut(unsigned char seqID);
     extern unsigned char IR_SequenceIn(unsigned char seqID);
