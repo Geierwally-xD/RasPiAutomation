@@ -193,6 +193,13 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(8); // Mute/ Demute Beamer
 			}
 		break;
+		case CI_STOP_BACKUP:  //17 stopps the backup-recorder
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(13); // stopp backup recorder
+			}
+		break;
 		case CI_SHUTDOWN:  //15 switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
 			result |= IR_init();
 			result |= IR_SequenceOut(9); // switch off Beamer

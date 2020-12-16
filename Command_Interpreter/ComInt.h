@@ -34,6 +34,7 @@
     #define CI_BEAMER_HDMI_2  13// switch Beamer to HDMI 2 (live stream View)
     #define CI_BEAMER_ANALOG  14// switch Beamer to analog input (video from CD)
     #define CI_BEAMER_MUTE    16// mute/demute Beamer
+    #define CI_STOP_BACKUP    17// stopps the backup-recorder
     #define CI_SHUTDOWN       15// switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
 
 	extern unsigned char CIexecuteCommand(char *argv[]);
