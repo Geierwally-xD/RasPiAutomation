@@ -87,15 +87,15 @@ unsigned char CIsequencer(unsigned char index)
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
+				result |= IR_SequenceOut(12); // start backup recorder
+			}
+			if(result == IR_SUCCESS)
+			{
 				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
 			}
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
-			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(12); // start backup recorder
 			}
 		break;
 		case CI_PPP_VIEW:       //3  power point view
@@ -135,7 +135,31 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_PRAYER_VIEW:    //7  combination ppp view with gopro action cam view
-			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_TEXT );  // audio profile text
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP );  // audio profile Gottesdienst
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(4);   // HDMI switch channel 5 (combination PPP and GoPro)
+			}
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(5);   // Beamer HDMI 1
+			}
+		break;
+		case CI_READERS_VIEW:    //7  combination ppp view with gopro action cam view
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_PREACHING );  // audio profile Predigt
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(4);   // HDMI switch channel 5 (combination PPP and GoPro)
+			}
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(5);   // Beamer HDMI 1
+			}
+		break;
+		case CI_SONG_VIEW:    //7  combination ppp view with gopro action cam view
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_BAND );  // audio profile Band
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -149,7 +173,7 @@ unsigned char CIsequencer(unsigned char index)
 		case CI_RESET: //11 reset audio - to sumary signal and IR to laptop view
 			aC_Data.activeAudioProfile = AC_WORSHIP;
 			result |= AC_writeDatFile();
-			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile Gottesdienst
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile worship
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -161,7 +185,12 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_BEAMER_HDMI_1:  //12 switch Beamer to HDMI 1 (PPP View)
+			result |= AC_Execute((unsigned char)AUDIO_PROFILE + AC_VIDEO_CLIP);  // audio profile laptop video clip
 			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
+			}
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
@@ -207,7 +236,8 @@ unsigned char CIsequencer(unsigned char index)
 			result |= IR_SequenceOut(10); // switch off HDMI switch
 			result |= IR_SequenceOut(13); // stop backup recorder
 			result |= IR_SequenceOut(11); // switch off backup recorder
-			system("sudo shutdown -h now");
+			//system("sudo shutdown -h now");
+			result = 99;
 		break;
 		default:
 			if(index > 50)

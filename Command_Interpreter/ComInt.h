@@ -28,7 +28,9 @@
     #define CI_GOPRO_VIEW     4 // gopro action cam view
     #define CI_POSCAM_VIEW    5 // camcorder with position control view
     #define CI_PREACHER_VIEW  6 // camcorder 2 control view
-    #define CI_PRAYER_VIEW    7 // combination ppp view with gopro action cam view
+    #define CI_PRAYER_VIEW    7 // combination ppp view with gopro action cam view with audio worship
+    #define CI_READERS_VIEW   8 // combination ppp view with gopro action cam view with audio preaching
+    #define CI_SONG_VIEW      9 // combination ppp view with gopro action cam view with audio Band
     #define CI_RESET          11// reset audio - to sumary signal and IR to laptop view
     #define CI_BEAMER_HDMI_1  12// switch Beamer to HDMI 1 (PPP View)
     #define CI_BEAMER_HDMI_2  13// switch Beamer to HDMI 2 (live stream View)

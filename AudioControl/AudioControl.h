@@ -35,6 +35,7 @@
     #define AC_PREACHING   0x02 // audio profile 3
     #define AC_TEXT        0x03 // audio profile 4
     #define AC_BAND        0x04 // audio profile 5
+    #define AC_VIDEO_CLIP  0x05 // audio profile 6
 
     extern unsigned char AC_init(void);
     extern unsigned char AC_write(char* buffer, int length); // prototype write to COM Port
