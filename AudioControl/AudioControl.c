@@ -80,6 +80,7 @@ unsigned char ACinit(void)
 	}
 	// not necessary result |= AC_Execute((unsigned char)ACTIVE + 0x0f); // activate audio channels 1, 2, 3 and 4
 	result |= AC_readDatFile(); // read in last active audio channel from file 
+
     return(result);
 }
 
@@ -88,6 +89,7 @@ unsigned char ACinit(void)
 unsigned char AC_open(void)
 {
 	unsigned char result = AC_SUCCESS;
+
 	if(uart0_filestream <=0)
 	{
 		uart0_filestream = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
@@ -106,6 +108,7 @@ unsigned char AC_open(void)
 				options.c_cc[VTIME]=10;
 				tcflush(uart0_filestream, TCIFLUSH);
 				tcsetattr(uart0_filestream, TCSANOW, &options);
+
 		}
 	}
     return(result);
@@ -124,7 +127,7 @@ unsigned char AC_write(char* buffer, int length)
 	return(result);
 }
 
-// read bytestream to COM Port
+// read bytestream from COM Port
 unsigned char AC_read(char* buffer, int length)
 {
 	unsigned char result = AC_SUCCESS;
@@ -135,7 +138,7 @@ unsigned char AC_read(char* buffer, int length)
 	startMeasurement(&timeoutTimer); // start on signal timer
 	while(streamlength <9)
 	{
-		bytes_read = read(uart0_filestream,&buffer[streamlength], length); //write buffer to COM Port
+		bytes_read = read(uart0_filestream,&buffer[streamlength], length); //read buffer from COM Port
 		if(bytes_read >0)
 		{
 			streamlength += bytes_read;
@@ -210,6 +213,10 @@ unsigned char AC_GetVolume(void)
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
     volumeState[0] = atoi(&volString[6]);
+    if((volumeState[0] > 63)||(volumeState[0] < 0)) // range check
+    {
+      volumeState[0] = 0;
+    }
 	// read audiomix channel 2 volume
 	commandString = &VOL2[0];    // init seqence set active all channels
 	commandlength = sizeof(VOL2);
@@ -218,6 +225,10 @@ unsigned char AC_GetVolume(void)
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
     volumeState[1] = atoi(&volString[6]);
+    if((volumeState[1] > 63)||(volumeState[1] < 0)) // range check
+    {
+      volumeState[1] = 0;
+    }
 	// read audiomix channel 3 volume
 	commandString = &VOL3[0];    // init seqence set active all channels
 	commandlength = sizeof(VOL3);
@@ -226,6 +237,10 @@ unsigned char AC_GetVolume(void)
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
     volumeState[2] = atoi(&volString[6]);
+    if((volumeState[2] > 63)||(volumeState[2] < 0)) // range check
+    {
+      volumeState[2] = 0;
+    }
 	// read audiomix channel 4 volume
 	commandString = &VOL4[0];    // init seqence set active all channels
 	commandlength = sizeof(VOL4);
@@ -234,6 +249,10 @@ unsigned char AC_GetVolume(void)
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
     volumeState[3] = atoi(&volString[6]);
+    if((volumeState[3] > 63)||(volumeState[3] < 0)) // range check
+    {
+      volumeState[3] = 0;
+    }
 	printf("GetVolume = 1= %d 2= %d 3= %d 4= %d\n",volumeState[0],volumeState[1],volumeState[2],volumeState[3]);//rvtest
 	return(result);
 }
@@ -245,10 +264,9 @@ unsigned char AC_Control(void)
 	char * commandString = &SET_VOLUME[0];
 	int commandlength = sizeof(SET_VOLUME);
 	unsigned char profileFade = 0;
-//volumeSteps[0] = 0; //rvtest
-//volumeSteps[1] = 0; //rvtest
-//volumeSteps[2] = 0; //rvtest
-//volumeSteps[3] = 0; //rvtest
+	systemtimer timeoutTimer;
+
+	startMeasurement(&timeoutTimer); // start timeout timer
 	do
 	{
 		profileFade = 0;
@@ -323,6 +341,11 @@ unsigned char AC_Control(void)
 			wait(30000); //wait 30 ms
 			commandString[10] = 'x';
 		}
+		if(isExpired(20000000,&timeoutTimer)== 1)
+		{
+			result |= AC_RX_TIMEOUT;
+			break;
+		}
 	}while(profileFade >0);
 	return(result);
 }
@@ -331,25 +354,20 @@ unsigned char AC_Control(void)
 unsigned char AC_Profile(unsigned char index)
 {
 	unsigned char result = AC_SUCCESS;
-	char * commandString = 0;
-	int commandlength = 0;
-
-/*	if(result == AC_SUCCESS)
+	if(index == 0)
 	{
-	    commandString = &SET_ACTIVE[0];    // init seqence set active all channels
-	    commandlength = sizeof(SET_ACTIVE);
-		result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
-		wait(20000);
-	}*/
-	if(result == AC_SUCCESS)// rvtest
+		result |=  AC_write(&RESET[0],sizeof(RESET));  // send first command sequence to Audiomix
+	}
+
+	if(result == AC_SUCCESS)
 	{
 		result|= AC_Request(index);    // read requested volume for profile
 	}
-	if(result == AC_SUCCESS) //rvtest
+	if(result == AC_SUCCESS)
 	{
 		result|= AC_GetVolume();  // get volume state from audio mix
 	}
-	if(result == AC_SUCCESS) //rvtest
+	if(result == AC_SUCCESS)
 	{
 	    volumeSteps[0] = volumeState[0];   // set steps to fade up / down for channel 1
 	    volumeSteps[1] = volumeState[1];   // set steps to fade up / down for channel 2

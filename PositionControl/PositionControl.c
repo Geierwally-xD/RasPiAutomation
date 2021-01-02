@@ -64,7 +64,7 @@ void PC_Test (void)
 					if(maxOffset < offset)
 					{
 						maxOffset = offset;
-						printf("\n max Offset = %d \n",maxOffset);
+						printf("\n max Offset = %d \n",(int)(maxOffset));
 						write_ptr = fopen("PC_Offset_Dat.bin","wb");  // w for write, b for binary
 						if(write_ptr != NULL)
 						{

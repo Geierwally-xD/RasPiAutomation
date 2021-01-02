@@ -24,7 +24,7 @@
 	#define CI_SEQUENCE      50	// execute command sequence
     #define CI_PAUSE          1 // pause sequence
     #define CI_TIMER          2 // timer sequence
-    #define CI_PPP_VIEW       3 // power point view
+    #define CI_PPP_VIEW       3 // power point view with audio profile Band
     #define CI_GOPRO_VIEW     4 // gopro action cam view
     #define CI_POSCAM_VIEW    5 // camcorder with position control view
     #define CI_PREACHER_VIEW  6 // camcorder 2 control view
@@ -36,8 +36,10 @@
     #define CI_BEAMER_HDMI_2  13// switch Beamer to HDMI 2 (live stream View)
     #define CI_BEAMER_ANALOG  14// switch Beamer to analog input (video from CD)
     #define CI_BEAMER_MUTE    16// mute/demute Beamer
+    #define CI_START_BACKUP   18// starts the backup-recorder
     #define CI_STOP_BACKUP    17// stopps the backup-recorder
     #define CI_SHUTDOWN       15// switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
+    #define CI_TEXT_VIEW      20 // power point view with audio profile Text
 
 	extern unsigned char CIexecuteCommand(char *argv[]);
 

@@ -98,8 +98,20 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
 			}
 		break;
-		case CI_PPP_VIEW:       //3  power point view
+		case CI_PPP_VIEW:       //3  power point view with audio profile Band
 			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_BAND);  // audio profile Band
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
+			}
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(5); // Beamer HDMI 1
+			}
+		break;
+		case CI_TEXT_VIEW:   //3  power point view with audio profile Text
+			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_TEXT);  // audio profile text
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
@@ -222,6 +234,13 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(8); // Mute/ Demute Beamer
 			}
 		break;
+		case CI_START_BACKUP:  //18 starts the backup-recorder
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(12); // start backup recorder
+			}
+		break;
 		case CI_STOP_BACKUP:  //17 stopps the backup-recorder
 			result |= IR_init();
 			if(result == IR_SUCCESS)
@@ -236,7 +255,7 @@ unsigned char CIsequencer(unsigned char index)
 			result |= IR_SequenceOut(10); // switch off HDMI switch
 			result |= IR_SequenceOut(13); // stop backup recorder
 			result |= IR_SequenceOut(11); // switch off backup recorder
-			//system("sudo shutdown -h now");
+			//system("sudo shutdown -h now"); moved to shell script
 			result = 99;
 		break;
 		default:
