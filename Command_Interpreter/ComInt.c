@@ -12,7 +12,46 @@
 #include "AudioControl.h"
 #include "timer.h"
 
+CI_Data cI_Data;
 
+
+// write toggle status into datfile
+unsigned char CI_writeDatFile(void)
+{
+	unsigned char result = AC_SUCCESS;
+	FILE *write_ptr;
+
+	write_ptr = fopen("CI_Dat.bin","wb");  // w for write, b for binary
+	if(write_ptr != NULL)
+	{
+		fwrite(&cI_Data,sizeof(cI_Data),1,write_ptr); // write dat file
+		fclose(write_ptr);
+	}
+	else
+	{
+		result = CI_WRITE_FAILED;
+	}
+	return(result);
+}
+
+// read toggle status from datfile
+unsigned char CI_readDatFile(void)
+{
+	unsigned char result = AC_SUCCESS;
+	FILE *read_ptr;
+
+	read_ptr = fopen("CI_Dat.bin","rb");  // r for read, b for binary
+	if(read_ptr != NULL)
+	{
+		fread(&cI_Data,sizeof(cI_Data),1,read_ptr); // read dat file
+		fclose(read_ptr);
+	}
+	else
+	{
+		result = CI_READ_FAILED;
+	}
+	return(result);
+}
 
 // test comnand sequencer in while loop
 void CItestSequence(unsigned char testParam)
@@ -80,6 +119,8 @@ unsigned char CIsequencer(unsigned char index)
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
+				cI_Data.toggleStateBeamerLive = 0;
+				result |= CI_writeDatFile();
 			}
 		break;
 		case CI_TIMER:         //2  timer sequence
@@ -96,6 +137,8 @@ unsigned char CIsequencer(unsigned char index)
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
+				cI_Data.toggleStateBeamerLive = 0;
+				result |= CI_writeDatFile();
 			}
 		break;
 		case CI_PPP_VIEW:       //3  power point view with audio profile Band
@@ -105,10 +148,6 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
 			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5); // Beamer HDMI 1
-			}
 		break;
 		case CI_TEXT_VIEW:   //3  power point view with audio profile Text
 			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_TEXT);  // audio profile text
@@ -116,10 +155,6 @@ unsigned char CIsequencer(unsigned char index)
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
-			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5); // Beamer HDMI 1
 			}
 		break;
 		case CI_GOPRO_VIEW:     //4  gopro action cam view
@@ -153,10 +188,6 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(4);   // HDMI switch channel 5 (combination PPP and GoPro)
 			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5);   // Beamer HDMI 1
-			}
 		break;
 		case CI_READERS_VIEW:    //7  combination ppp view with gopro action cam view
 			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_PREACHING );  // audio profile Predigt
@@ -164,10 +195,6 @@ unsigned char CIsequencer(unsigned char index)
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(4);   // HDMI switch channel 5 (combination PPP and GoPro)
-			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5);   // Beamer HDMI 1
 			}
 		break;
 		case CI_SONG_VIEW:    //7  combination ppp view with gopro action cam view
@@ -177,12 +204,9 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(4);   // HDMI switch channel 5 (combination PPP and GoPro)
 			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5);   // Beamer HDMI 1
-			}
 		break;
 		case CI_RESET: //11 reset audio - to sumary signal and IR to laptop view
+			result = AC_Execute((unsigned char)AUDIO_RESET);  // reset audio mix
 			aC_Data.activeAudioProfile = AC_WORSHIP;
 			result |= AC_writeDatFile();
 			result = AC_Execute((unsigned char)AUDIO_PROFILE + AC_WORSHIP);  // audio profile worship
@@ -195,24 +219,34 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(5); // Beamer HDMI 1
 			}
+			cI_Data.toggleStateBeamerLive = 0;
+			result |= CI_writeDatFile();
 		break;
-		case CI_BEAMER_HDMI_1:  //12 switch Beamer to HDMI 1 (PPP View)
+		case CI_LIVE_VIDEO:  // switch HDMI and audio to Laptop
 			result |= AC_Execute((unsigned char)AUDIO_PROFILE + AC_VIDEO_CLIP);  // audio profile laptop video clip
 			result |= IR_init();
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(0); // HDMI switch channel 1 (laptop)
 			}
-			if(result == IR_SUCCESS)
-			{
-				result |= IR_SequenceOut(5); // Beamer HDMI 1
-			}
+
 		break;
-		case CI_BEAMER_HDMI_2:  //13 switch Beamer to HDMI 2 (live stream View)
+		case CI_BEAMER_TOGGLE:  //13 toggle Beamer between HDMI1 (laptop) and HDMI 2 (live stream View)
 			result |= IR_init();
+			result |= CI_readDatFile();
 			if(result == IR_SUCCESS)
 			{
-				result |= IR_SequenceOut(6); // Beamer HDMI 2
+				if(cI_Data.toggleStateBeamerLive == 0)
+				{
+					result |= IR_SequenceOut(6); // Beamer HDMI 2
+					cI_Data.toggleStateBeamerLive = 1;
+				}
+				else
+				{
+					result |= IR_SequenceOut(5); // Beamer HDMI 1
+					cI_Data.toggleStateBeamerLive = 0;
+				}
+				result |= CI_writeDatFile();
 			}
 		break;
 		case CI_BEAMER_ANALOG:  //14 switch Beamer to analog input (video from CD)
@@ -226,6 +260,8 @@ unsigned char CIsequencer(unsigned char index)
 			{
 				result |= IR_SequenceOut(7); // Beamer analog
 			}
+			cI_Data.toggleStateBeamerLive = 2;
+			result |= CI_writeDatFile();
 		break;
 		case CI_BEAMER_MUTE:  //16 mute/demute Beamer
 			result |= IR_init();
@@ -309,7 +345,6 @@ unsigned char CIexecuteCommand(char *argv[])
 	}
 	return(result);
 }
-
 
 
 

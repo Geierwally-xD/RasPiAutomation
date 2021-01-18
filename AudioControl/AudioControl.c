@@ -356,7 +356,7 @@ unsigned char AC_Profile(unsigned char index)
 	unsigned char result = AC_SUCCESS;
 	if(index == 0)
 	{
-		result |=  AC_write(&RESET[0],sizeof(RESET));  // send first command sequence to Audiomix
+		result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
 	}
 
 	if(result == AC_SUCCESS)
@@ -419,6 +419,9 @@ unsigned char AC_Execute(unsigned char index)
 		break;
 		case AUDIO_PROFILE:
 			return(AC_Profile(channel));      // execute audio profile
+		break;
+		case AUDIO_RESET:
+			return(AC_write(&RESET[0],sizeof(RESET)));  // send reset command to Audiomix
 		break;
 		default:
 			commandString = &FADE_STOP[0];
