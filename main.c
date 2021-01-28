@@ -84,6 +84,13 @@ int main(int argc, char *argv[])
 
 	only_one_instance();
 
+   /*
+    * Endianess helper
+    */
+	//short i = 1;
+	//char *p = (char*) &i;
+	//char isLittleEndian = p[0];
+
 	unsigned char result = RASPI_AUTOMATION_SUCCESS;
 	if(argc == 3)
 	{

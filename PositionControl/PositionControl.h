@@ -2,7 +2,7 @@
 
  Name:           PositionControl.h
  Description:    declaration of camera position control driver
- Copyright:      Geierwally, 2020(c)
+ Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
 
@@ -20,6 +20,23 @@
 	#define PC_IN_1   28 // relais output signal 7
 	#define PC_IN_2   29 // relais output signal 8
 
-extern void PC_Init(void);
+	#define PC_SUCCESS 0 // position control successful finished
+	#define PC_FAILLED 1 // device failure sensor not detected
+
+    #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
+	typedef struct
+	{
+		short nick;	 // calculated nick angle
+		short gier;	 // calculated gier angle
+	    short roll;  // calculated roll angle
+		short nickOffset;
+		short gierOffset;
+		short rollOffset;
+	}PosAngle_Data;
+
+	extern PosAngle_Data angleData;     // calculated nick and gier angles
+	extern unsigned char PC_Init(void);
+	extern void PC_Test(void);
 
 #endif /* POSITIONCONTROL_POSITIONCONTROL_H_ */
