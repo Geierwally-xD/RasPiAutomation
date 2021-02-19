@@ -19,11 +19,13 @@
 	//#define PC_OUT_8  29 // relais output signal 8
 	#define PC_IN_1   28 // relais output signal 7
 	#define PC_IN_2   29 // relais output signal 8
-
 	#define PC_SUCCESS 0 // position control successful finished
 	#define PC_FAILLED 1 // device failure sensor not detected
-
     #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+    #define Phi 3.14159265358979323846
+	#define AA 0.97         // complementary filter constant
+	#define RAD_TO_DEG 57.29578
+
 
 	typedef struct
 	{
@@ -35,8 +37,17 @@
 		short rollOffset;
 	}PosAngle_Data;
 
+	typedef struct
+	{
+		double scalar;
+		double x;
+		double y;
+		double z;
+	}Quaternion;
+
 	extern PosAngle_Data angleData;     // calculated nick and gier angles
 	extern unsigned char PC_Init(void);
 	extern void PC_Test(void);
+	extern unsigned char PC_Calibrate(void);
 
 #endif /* POSITIONCONTROL_POSITIONCONTROL_H_ */

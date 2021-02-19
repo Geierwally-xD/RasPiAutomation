@@ -15,7 +15,7 @@
 #include "timer.h"
 
 int gyroDevice = 0;
-PosAcc_Data accData = {0,0,0,0};
+PosAcc_Data accData = {0,0,0};
 PosGyro_Data gyroData = {0,0,0};
 
 /**
@@ -29,7 +29,7 @@ static const int16_t range_acc[] = { 2000, 4000, 8000 , 16000};
  * LSM6DSL_GYRO_FS_245DPS, LSM6DSL_GYRO_FS_500DPS,
  * LSM6DSL_GYRO_FS_1000DPS, LSM6DSL_GYRO_FS_2000DPS
  */
-static const int16_t range_gyro[] = { 2450, 5000, 10000, 20000 };
+static const int16_t range_gyro[] = { 245, 500, 1000, 2000 };
 
 // initializes gyro accelerometer
 unsigned char PC_Gyro_Init(void)
@@ -42,12 +42,12 @@ unsigned char PC_Gyro_Init(void)
 	if(gyroDevice >0)
 	{
 		// enable X, Y, Z axis of gyroscope
-		wiringPiI2CWriteReg8 (gyroDevice, CTRL10_C, 0b00000000);
+		wiringPiI2CWriteReg8 (gyroDevice, CTRL10_C, 0b00111000);
         wait(10);
 		// LSM6DS33 gyro init
 		// ODR = 1000 (1.66 kHz (high performance))
-		// FS_G = 11 (2000 dps)
-		wiringPiI2CWriteReg8 (gyroDevice, CTRL2_G, 0b00000000);
+		// FS_G = 00 (245 dps)
+		wiringPiI2CWriteReg8 (gyroDevice, CTRL2_G, 0b10000000);
         wait(10);
 		// defaults
 		wiringPiI2CWriteReg8 (gyroDevice, CTRL7_G, 0b00000000);
@@ -147,9 +147,9 @@ unsigned char PC_Gyro_Read(void)
 		gyroData.posZ = posVal;
 
 		/* calculate gyroscope raw data with range 245DPS  */
-		gyroData.posX = gyroData.posX * range_gyro[LSM6DSL_GYRO_FS_245DPS] / 0xfff;
-		gyroData.posY = gyroData.posY * range_gyro[LSM6DSL_GYRO_FS_245DPS] / 0xfff;
-		gyroData.posZ = gyroData.posZ * range_gyro[LSM6DSL_GYRO_FS_245DPS] / 0xfff;
+		gyroData.posX = gyroData.posX / range_gyro[LSM6DSL_GYRO_FS_245DPS];
+		gyroData.posY = gyroData.posY / range_gyro[LSM6DSL_GYRO_FS_245DPS];
+		gyroData.posZ = gyroData.posZ / range_gyro[LSM6DSL_GYRO_FS_245DPS];
 	}
 	else
 	{

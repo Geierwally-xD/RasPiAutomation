@@ -39,22 +39,38 @@
 #define MAG_SUCCESS 0 // read magnetometer data successful finished
 #define MAG_FAILLED 1 // device failure sensor not detected
 
+#define MAG_CAL_TIMEOUT 60000000 // one minute calibration time
+
+
 typedef struct
 {
 	double posX;	 // magnetometer x position
 	double posY;	 // magnetometer y position
 	double posZ;	 // magnetometer z position
-	double Xmax;
-	double Xmin;
-	double Ymax;
-	double Ymin;
-	double DeclinationAngle;
 }PosMag_Data;
+
+typedef struct
+{
+	double calXMax;
+	double calXMin;
+	double calXCenter;
+	double calYMax;
+	double calYMin;
+	double calYCenter;
+	double calZMax;
+	double calZMin;
+	double calZCenter;
+	double calDeclinationAngle;
+}CalMag_Data;
 
 
 extern int magDevice;  // device of magnetometer
 extern PosMag_Data magData; // raw data X,Y,Z magnetometer
+extern CalMag_Data calMagDat; // calibration mag data
 extern unsigned char PC_Mag_Init(void); // initialize magnetometer
 extern unsigned char PC_Mag_Read(void); // read data from magnetometer
+extern unsigned char PC_Mag_readDatFile(void); // read calibration data
+extern unsigned char PC_Mag_writeDatFile(void); // write calibration data
+extern unsigned char PC_Mag_Calibrate(void); // calibrate the magnetometer
 
 #endif /* POSITIONCONTROL_POSITIONMAGNETIC_H_ */

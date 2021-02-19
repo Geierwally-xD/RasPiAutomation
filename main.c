@@ -97,8 +97,9 @@ int main(int argc, char *argv[])
 		SYSTEM_Initialize();
 		initSystemTimer();
 		ACinit();
-		//PC_Init();
-		//PC_Test();
+		PC_Init();
+		//PC_Calibrate();
+		PC_Test();
 		result = CIexecuteCommand(argv);
 	}
 	else
