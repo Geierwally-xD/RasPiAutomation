@@ -2,7 +2,7 @@
 
  Name:           ComInt.c
  Description:    command line interpreter for 64 bit Rspberry Pi
- Copyright:      Geierwally, 2020(c)
+ Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
 #include <stdlib.h>
@@ -11,6 +11,7 @@
 #include "IRcontrol.h"
 #include "AudioControl.h"
 #include "timer.h"
+#include "PositionControl.h"
 
 CI_Data cI_Data;
 
@@ -328,8 +329,41 @@ unsigned char CIexecuteCommand(char *argv[])
 				result = IR_SequenceIn((unsigned char)index);
 			}
 		break;
-		case CI_CAMERA: // camera move command
+		case CI_POS_CONTROL: // position control move to position
+			result = PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				result = PC_Move((unsigned char)index);
+			}
 		break;
+		case CI_POS_TEACH: // position control teach position
+			result = PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				result = PC_Teach((unsigned char)index);
+			}
+		break;
+		case CI_POS_CAL: // position control calibrate
+			result = PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				result = PC_Calibrate();
+			}
+		break;
+		case CI_POS_SEQUENCE: // command sequence position control
+			result = PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				result = PC_Sequencer(index);
+			}
+		break;
+		case CI_POS_MOVE_BTN: // position control move button pressed
+			result = PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				result = PC_MoveButton((unsigned char)index);
+			}
+	    break;
 		case CI_AUDIO_SWITCH: // audio switch command
 			result = AC_Execute((unsigned char)index);
 		break;
@@ -339,6 +373,7 @@ unsigned char CIexecuteCommand(char *argv[])
 		case CI_SEQUENCE: // command sequence
 			result = CIsequencer((unsigned char)index);
 		break;
+
 		default:
 			result = CI_WRONG_ARG; // command line argument undefined
 		break;

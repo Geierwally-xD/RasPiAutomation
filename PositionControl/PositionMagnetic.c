@@ -40,7 +40,7 @@ unsigned char PC_Mag_writeDatFile(void)
 	return(result);
 }
 
-// read and set active audio channel from datfile
+// read and set calibration date from datfile
 unsigned char PC_Mag_readDatFile(void)
 {
 	unsigned char result = MAG_SUCCESS;

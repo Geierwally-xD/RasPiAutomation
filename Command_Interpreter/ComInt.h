@@ -3,7 +3,7 @@
  Name:           ComInt.h
  Description:    declaration of command line interpreter
                  for 64 bit Raspberry Pi
- Copyright:      Geierwally, 2020(c)
+ Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
 
@@ -23,7 +23,10 @@
     #define CI_AUDIO_TEACH   31 // teach audio profile
 	#define CI_POS_CONTROL   40 // position control command
     #define CI_POS_TEACH     41 // position control teach command
+    #define CI_POS_CAL       42 // position control calibrate command
+    #define CI_POS_MOVE_BTN  43 // position control move button pressed
 	#define CI_SEQUENCE      50	// execute command sequence
+    #define CI_POS_SEQUENCE  51 // execute position control command sequence
     #define CI_PAUSE          1 // pause sequence
     #define CI_TIMER          2 // timer sequence
     #define CI_PPP_VIEW       3 // power point view with audio profile Band
