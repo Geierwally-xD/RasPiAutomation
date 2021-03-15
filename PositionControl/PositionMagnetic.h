@@ -40,7 +40,7 @@
 #define MAG_FAILLED 1 // device failure sensor not detected
 
 #define MAG_CAL_TIMEOUT 60000000 // one minute calibration time
-
+#define MAG_CAL_MOVE_TIME 2000000 // two seconds move time , switch other direction
 
 typedef struct
 {
@@ -64,11 +64,11 @@ typedef struct
 }CalMag_Data;
 
 
-extern int magDevice;  // device of magnetometer
-extern PosMag_Data magData; // raw data X,Y,Z magnetometer
-extern CalMag_Data calMagDat; // calibration mag data
-extern unsigned char PC_Mag_Init(void); // initialize magnetometer
-extern unsigned char PC_Mag_Read(void); // read data from magnetometer
+extern int magDevice;  						// device of magnetometer
+extern PosMag_Data magData; 				// raw data X,Y,Z magnetometer
+extern CalMag_Data calMagDat; 				// calibration mag data
+extern unsigned char PC_Mag_Init(void); 	// initialize magnetometer
+extern unsigned char PC_Mag_Read(void); 	// read data from magnetometer
 extern unsigned char PC_Mag_readDatFile(void); // read calibration data
 extern unsigned char PC_Mag_writeDatFile(void); // write calibration data
 extern unsigned char PC_Mag_Calibrate(void); // calibrate the magnetometer

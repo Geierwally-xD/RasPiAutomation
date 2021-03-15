@@ -2,7 +2,7 @@
 
  Name:           IRcontrol.h
  Description:    declaration of IR remote control driver
- Copyright:      Geierwally, 2020(c)
+ Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
 
@@ -46,4 +46,5 @@
     extern unsigned char IR_SequenceIn(unsigned char seqID);
     extern unsigned char IR_writeDatFile(void);
     extern unsigned char IR_readDatFile(void);
+    extern void IR_shutdown();
 #endif /* IRCONTROL_H_ */

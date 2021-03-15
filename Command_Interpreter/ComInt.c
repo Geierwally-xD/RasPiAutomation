@@ -286,12 +286,13 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_SHUTDOWN:  //15 switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
-			result |= IR_init();
-			result |= IR_SequenceOut(9); // switch off Beamer
-			result |= IR_SequenceOut(9); // switch off Beamer twice necessary
+			result |= IR_SequenceOut(9);  // switch off Beamer
+			result |= IR_SequenceOut(9);  // switch off Beamer twice necessary
 			result |= IR_SequenceOut(10); // switch off HDMI switch
 			result |= IR_SequenceOut(13); // stop backup recorder
 			result |= IR_SequenceOut(11); // switch off backup recorder
+			PC_shutdown();
+			IR_shutdown();                // switch off IR output
 			//system("sudo shutdown -h now"); moved to shell script
 			result = 99;
 		break;
@@ -330,28 +331,51 @@ unsigned char CIexecuteCommand(char *argv[])
 			}
 		break;
 		case CI_POS_CONTROL: // position control move to position
-			result = PC_Init();
+			result = IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(2); // switch hdmi to camcorder 1
+			}
+			result |= PC_Init();
 			if(result == PC_SUCCESS)
 			{
-				result = PC_Move((unsigned char)index);
+				result |= PC_Move((unsigned char)index);
 			}
 		break;
 		case CI_POS_TEACH: // position control teach position
-			result = PC_Init();
+			result = IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(2); // switch hdmi to camcorder 1
+			}
+			result |= PC_Init();
 			if(result == PC_SUCCESS)
 			{
-				result = PC_Teach((unsigned char)index);
+				result |= PC_Teach((unsigned char)index);
 			}
 		break;
-		case CI_POS_CAL: // position control calibrate
+		case CI_POS_CAL: // position control calibrate magnetometer or gyroscope depending index
 			result = PC_Init();
 			if(result == PC_SUCCESS)
 			{
-				result = PC_Calibrate();
+				result = PC_Calibrate((unsigned char)index);
+			}
+		break;
+		case CI_POS_TEST:
+			result = IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(2); // switch hdmi to camcorder 1
+			}
+			result |= PC_Init();
+			if(result == PC_SUCCESS)
+			{
+				PC_Test_Pos();
 			}
 		break;
 		case CI_POS_SEQUENCE: // command sequence position control
-			result = PC_Init();
+			result = IR_init();
+			result |= PC_Init();
 			if(result == PC_SUCCESS)
 			{
 				result = PC_Sequencer(index);

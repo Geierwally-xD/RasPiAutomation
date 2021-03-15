@@ -2,7 +2,7 @@
 
  Name:           IRcontrol.c
  Description:    functionality of IR remote control driver
- Copyright:      Geierwally, 2020(c)
+ Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
 #include <wiringPi.h>
@@ -200,4 +200,7 @@ unsigned char IR_readDatFile(void)
 	return(result);
 }
 
-
+void IR_shutdown(void)
+{
+	digitalWrite(IR_OUT, 0); // reset IR output
+}

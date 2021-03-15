@@ -21,7 +21,7 @@ PosMag_Data magData = {0,0,0};
 CalMag_Data calMagDat = {0,0,0,0,0,0,0,0,0,0};
 
 
-// write active audio channel into datfile
+// write calibration data of magnetometer into datfile
 unsigned char PC_Mag_writeDatFile(void)
 {
 	unsigned char result = MAG_SUCCESS;
@@ -40,7 +40,7 @@ unsigned char PC_Mag_writeDatFile(void)
 	return(result);
 }
 
-// read and set calibration date from datfile
+// read and set calibration data of magnetometer from datfile
 unsigned char PC_Mag_readDatFile(void)
 {
 	unsigned char result = MAG_SUCCESS;
@@ -101,7 +101,9 @@ unsigned char PC_Mag_Init(void)
 unsigned char PC_Mag_Calibrate(void)
 {
 	unsigned char retVal = MAG_SUCCESS;
+	static int direction = 0;
 	systemtimer calTimer;
+	systemtimer moveTimer;
 	calMagDat.calXMax = 0;
 	calMagDat.calXMin = 0;
 	calMagDat.calYMax = 0;
@@ -112,9 +114,9 @@ unsigned char PC_Mag_Calibrate(void)
 	calMagDat.calYCenter = 0;
 	calMagDat.calZCenter = 0;
 
-
 	startMeasurement(&calTimer);
-
+	startMeasurement(&moveTimer);
+	PC_Cal_switchMove(direction); // start position movement
 	while((isExpired(MAG_CAL_TIMEOUT,&calTimer)==0)/*&&(nextStepHelper == nextStep)*/)
 	{
 		retVal = PC_Acc_Read();  // get accelerometer raw data from sensor
@@ -152,6 +154,12 @@ unsigned char PC_Mag_Calibrate(void)
 				printf("calib Mag new Zmin=%f\n",calMagDat.calZMin);
 			}
 		}
+		if(isExpired(MAG_CAL_MOVE_TIME,&moveTimer))
+		{
+			startMeasurement(&moveTimer);
+			PC_Cal_switchMove(direction);  // two seconds move time reached , switch other direction
+			direction ^= 1;
+		}
 
 	}
 	calMagDat.calXCenter = (calMagDat.calXMax + calMagDat.calXMin)/2;
@@ -159,10 +167,11 @@ unsigned char PC_Mag_Calibrate(void)
 	calMagDat.calZCenter = (calMagDat.calZMax + calMagDat.calZMin)/2;
     printf("calibration magnetometer done X center=%f  Y center=%f Z center=%f\n",calMagDat.calXCenter,calMagDat.calYCenter,calMagDat.calZCenter);
 	retVal |= PC_Mag_writeDatFile(); // write new calibration data into binary file
+	PC_shutdown();  // reset all RasPi GPIO for relais module
 	return(retVal);
 }
 
-// read data from magnetometer
+// read sensor raw data of magnetometer
 unsigned char PC_Mag_Read(void)
 {
 	unsigned char retVal = MAG_SUCCESS;

@@ -102,10 +102,12 @@
 
 typedef struct
 {
-	short shortposX; // accelerometer x pos for mapping
 	double posX;	 // accelerometer x position
 	double posY;	 // accelerometer y position
 	double posZ;	 // accelerometer z position
+	double offsetX;
+	double offsetY;
+	double offsetZ;
 }PosAcc_Data;
 
 
@@ -114,8 +116,17 @@ typedef struct
 	double posX;	 // gyroscope x position
 	double posY;	 // gyroscope y position
 	double posZ;	 // gyroscope z position
+	double offsetX;
+	double offsetY;
+	double offsetZ;
 }PosGyro_Data;
 
+typedef struct
+{
+	double calX;	 // calibration gyro X
+	double calY;	 // calibration gyro Y
+	double calZ;	 // calibration gyro Z
+}CalGyro_Data;
 
 extern int gyroDevice;  // device of accelerometer and gyroscope
 extern PosAcc_Data accData;   // raw data X,Y,Z accelerometer
@@ -123,6 +134,7 @@ extern PosGyro_Data gyroData; // raw data X,Y,Z gyroscope
 extern unsigned char PC_Gyro_Init(void); // initialize accelerometer and gyroscope sensors
 extern unsigned char PC_Acc_Read(void);  // read data from accelerometer
 extern unsigned char PC_Gyro_Read(void); // read data from gyroscope
+extern unsigned char PC_Gyr_Calibrate(void);
 
 
 #endif /* POSITIONCONTROL_POSITIONGYRO_H_ */
