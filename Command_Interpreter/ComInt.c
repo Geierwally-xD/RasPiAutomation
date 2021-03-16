@@ -286,6 +286,7 @@ unsigned char CIsequencer(unsigned char index)
 			}
 		break;
 		case CI_SHUTDOWN:  //15 switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
+			result |= IR_init();
 			result |= IR_SequenceOut(9);  // switch off Beamer
 			result |= IR_SequenceOut(9);  // switch off Beamer twice necessary
 			result |= IR_SequenceOut(10); // switch off HDMI switch
