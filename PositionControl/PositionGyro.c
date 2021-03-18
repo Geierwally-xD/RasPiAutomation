@@ -20,6 +20,7 @@ PosAcc_Data accData = {0,0,0,0,0,0};
 PosGyro_Data gyroData = {0,0,0,0,0,0};
 
 
+
 /**
  * order in array [0, 1, 2, 3] is
  * LSM6DSL_ACC_FS_2G, LSM6DSL_ACC_FS_4G, LSM6DSL_ACC_FS_8G, LSM6DSL_ACC_FS_16G
@@ -195,7 +196,7 @@ unsigned char PC_Gyro_Read(void)
         /* calculate gyroscope raw data with range 245DPS  */
         gyroData.posX = (gyroData.posX * range_gyro[LSM6DSL_GYRO_FS_500DPS] / 0x7fff)-gyroData.offsetX;
         gyroData.posY = (gyroData.posY * range_gyro[LSM6DSL_GYRO_FS_500DPS] / 0x7fff)-gyroData.offsetY;
-        gyroData.posZ = (gyroData.posZ * range_gyro[LSM6DSL_GYRO_FS_500DPS] / 0x7fff)-gyroData.offsetZ;
+        gyroData.posZ = (gyroData.posZ * range_gyro[LSM6DSL_GYRO_FS_245DPS] / 0x7fff)-gyroData.offsetZ;
 	}
 	else
 	{
@@ -220,6 +221,8 @@ unsigned char PC_Gyr_Calibrate(void)
 	gyroData.posY = 0.0;
 	gyroData.posZ = 0.0;
 
+	PC_Gyro_Read();
+
 	startMeasurement(&calibrationTimer);
 	startMeasurement(&gyroCycleTimer);
 	while(isExpired(60000000,&calibrationTimer)==0)
@@ -232,7 +235,8 @@ unsigned char PC_Gyr_Calibrate(void)
 		GyroAngle.y +=gyroData.posY * elapsedTime;
 		GyroAngle.z +=gyroData.posZ * elapsedTime;
 		printf ("Gyr Nick %f Gyro Roll %f Gyro Gier %f \n",GyroAngle.y,GyroAngle.x,GyroAngle.z);
-		wait(10000);
+		while(isExpired(10000,&gyroCycleTimer)==0)
+		{}
 	}
 	gyroData.offsetX = GyroAngle.x / 60;
 	gyroData.offsetY = GyroAngle.y / 60;

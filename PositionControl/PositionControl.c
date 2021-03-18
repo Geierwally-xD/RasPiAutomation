@@ -232,7 +232,7 @@ void PC_calcAngleDegrees(unsigned char init)
 	// kalman filter used instead complementary filter
 	// Complementary filter to combine the magnetometer and gyro values for gier.
 	// ComplementaryFilter.z=AA*(ComplementaryFilter.z-gyroData.posZ*elapsedTime) +(1 - AA) * AngleDeg.z;
-	// printf ("Gyr Gier  %f Acc Gier %f complement Gier %f kalman Gier %f\n",GyroAngle.z, AngleDeg.z,ComplementaryFilter.z, KalmanGier.KFangle);
+ printf ("Gyr Gier  %f Mag Gier  %f kalman Gier %f\n",GyroAngle.z, AngleDeg.z, KalmanGier.KFangle);
 	// Euler angle gier
 	AngleDeg.z = KalmanGier.KFangle;
     angleData.gier = AngleDeg.z; /********* Euler angle gier final result in degrees ********/
@@ -398,7 +398,7 @@ unsigned char PC_Move(unsigned char ID)
 					moveDone &= 0x01;
 				}
 			}
-			printf("Gier=%f grad Nick=%f  Move=%d\n",angleData.gier,angleData.nick,moveDone);
+		//	printf("Gier=%f grad Nick=%f  Move=%d\n",angleData.gier,angleData.nick,moveDone);
 		}
 	}
 	// unlock remote control switches after auto move

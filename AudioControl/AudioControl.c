@@ -99,16 +99,17 @@ unsigned char AC_open(void)
 		}
 		else
 		{
+			// configured based on https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
 			struct termios options;
 			tcgetattr(uart0_filestream, &options);
-				options.c_cflag = B9600 | CS8 |CSTOPB| CLOCAL | CREAD;
-				options.c_iflag = IGNPAR;
-				options.c_oflag = 0;
-				options.c_lflag = 0;
-				options.c_cc[VTIME]=10;
-				tcflush(uart0_filestream, TCIFLUSH);
-				tcsetattr(uart0_filestream, TCSANOW, &options);
-
+			options.c_cflag = B9600 | CS8 |CSTOPB| CLOCAL | CREAD;
+			options.c_iflag = IGNPAR;
+			options.c_oflag = 0;
+			options.c_lflag = 0;
+			options.c_cc[VTIME]= 0;//10;
+			options.c_cc[VMIN] = 0;
+			tcflush(uart0_filestream, TCIFLUSH);
+			tcsetattr(uart0_filestream, TCSANOW, &options);
 		}
 	}
     return(result);
@@ -206,11 +207,25 @@ unsigned char AC_GetVolume(void)
 	unsigned char result = AC_SUCCESS;
 
 	// read audiomix channel 1 volume
-	commandString = &VOL1[0];    // init seqence set active all channels
+	commandString = &VOL1[0];    // get volume channel 1
 	commandlength = sizeof(VOL1);
-	result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
+	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
     result |=  AC_read(&volString[0],9);
+
+    if(result != AC_SUCCESS) // timeout occured, send reset and try once more
+    {
+    	commandString = &RESET[0];    // reset audiomix
+    	commandlength = sizeof(RESET);
+    	result =  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
+    	wait(30000);
+    	// read audiomix channel 1 volume
+    	commandString = &VOL1[0];    // get volume channel 1
+    	commandlength = sizeof(VOL1);
+    	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
+    	wait(30000);
+        result |=  AC_read(&volString[0],9);
+    }
     volString[8] = 0;
     volumeState[0] = atoi(&volString[6]);
     if((volumeState[0] > 63)||(volumeState[0] < 0)) // range check
@@ -218,9 +233,9 @@ unsigned char AC_GetVolume(void)
       volumeState[0] = 0;
     }
 	// read audiomix channel 2 volume
-	commandString = &VOL2[0];    // init seqence set active all channels
+	commandString = &VOL2[0];    // get volume channel 2
 	commandlength = sizeof(VOL2);
-	result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
+	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
@@ -230,9 +245,9 @@ unsigned char AC_GetVolume(void)
       volumeState[1] = 0;
     }
 	// read audiomix channel 3 volume
-	commandString = &VOL3[0];    // init seqence set active all channels
+	commandString = &VOL3[0];    // get volume channel 3
 	commandlength = sizeof(VOL3);
-	result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
+	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;
@@ -242,9 +257,9 @@ unsigned char AC_GetVolume(void)
       volumeState[2] = 0;
     }
 	// read audiomix channel 4 volume
-	commandString = &VOL4[0];    // init seqence set active all channels
+	commandString = &VOL4[0];    // get volume channel 4
 	commandlength = sizeof(VOL4);
-	result |=  AC_write(&commandString[0],commandlength);  // send first command sequence to Audiomix
+	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
     result |=  AC_read(&volString[0],9);
     volString[8] = 0;

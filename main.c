@@ -66,7 +66,8 @@ only_one_instance(void)
 	fl.l_len = 0;
 	fl.l_type = F_WRLCK;
 	fl.l_whence = SEEK_SET;
-	if (fcntl(fd, F_SETLK, &fl) < 0) {
+	if (fcntl(fd, F_SETLK, &fl) < 0)
+	{
 		fputs("Another instance of this program is running.\n",
 		    stderr);
 		exit(1);
