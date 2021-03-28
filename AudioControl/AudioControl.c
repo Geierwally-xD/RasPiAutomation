@@ -369,15 +369,15 @@ unsigned char AC_Control(void)
 unsigned char AC_Profile(unsigned char index)
 {
 	unsigned char result = AC_SUCCESS;
-	if(index == 0)
-	{
-		result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
-	}
+	//if(index == 0)
+	//{
+	//	result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
+	//}
 
-	if(result == AC_SUCCESS)
-	{
-		result|= AC_Request(index);    // read requested volume for profile
-	}
+	//if(result == AC_SUCCESS)
+	//{
+	result|= AC_Request(index);    // read requested volume for profile
+	//}
 	if(result == AC_SUCCESS)
 	{
 		result|= AC_GetVolume();  // get volume state from audio mix
@@ -393,7 +393,7 @@ unsigned char AC_Profile(unsigned char index)
 
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 
 	return(result);
@@ -476,7 +476,7 @@ unsigned char AC_Execute(unsigned char index)
 	}
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 	// reset channels for next command
 	commandString[7] = temp;
@@ -518,7 +518,7 @@ unsigned char AC_Test (void)
 	}
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 	return(result);
 }

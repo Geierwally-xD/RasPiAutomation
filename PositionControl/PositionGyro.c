@@ -27,12 +27,7 @@ PosGyro_Data gyroData = {0,0,0,0,0,0};
  */
 static const int16_t range_acc[] = { 2000, 4000, 8000 , 16000};
 
-/**
- * order in array [0, 1, 2, 3] is
- * LSM6DSL_GYRO_FS_245DPS, LSM6DSL_GYRO_FS_500DPS,
- * LSM6DSL_GYRO_FS_1000DPS, LSM6DSL_GYRO_FS_2000DPS
- */
-static const int16_t range_gyro[] = { 245, 500, 1000, 2000 };
+
 CalGyro_Data calGyDat = {0.0,0.0,0.0};
 
 // write gyroscope calibration data into datfile
@@ -194,9 +189,9 @@ unsigned char PC_Gyro_Read(void)
 		gyroData.posZ = posVal;
 
         /* calculate gyroscope raw data with range 245DPS  */
-        gyroData.posX = (gyroData.posX * range_gyro[LSM6DSL_GYRO_FS_500DPS] / 0x7fff)-gyroData.offsetX;
-        gyroData.posY = (gyroData.posY * range_gyro[LSM6DSL_GYRO_FS_500DPS] / 0x7fff)-gyroData.offsetY;
-        gyroData.posZ = (gyroData.posZ * range_gyro[LSM6DSL_GYRO_FS_245DPS] / 0x7fff)-gyroData.offsetZ;
+        gyroData.posX = (gyroData.posX * LSM6DSL_GYRO_FS_338DPS / 0x7fff)-gyroData.offsetX;
+        gyroData.posY = (gyroData.posY * LSM6DSL_GYRO_FS_338DPS / 0x7fff)-gyroData.offsetY;
+        gyroData.posZ = (gyroData.posZ * LSM6DSL_GYRO_FS_115DPS / 0x7fff)-gyroData.offsetZ;
 	}
 	else
 	{
@@ -220,6 +215,9 @@ unsigned char PC_Gyr_Calibrate(void)
 	gyroData.posX = 0.0;
 	gyroData.posY = 0.0;
 	gyroData.posZ = 0.0;
+	GyroAngle.x = 0.0;
+	GyroAngle.y = 0.0;
+	GyroAngle.z = 0.0;
 
 	PC_Gyro_Read();
 

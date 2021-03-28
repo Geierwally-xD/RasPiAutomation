@@ -27,7 +27,7 @@
     #define CI_POS_MOVE_BTN  43 // position control move button pressed
     #define CI_POS_TEST      44 // position control test program, moves to top five positions
 	#define CI_SEQUENCE      50	// execute command sequence
-    #define CI_POS_SEQUENCE  51 // execute position control command sequence
+    #define CI_POS_SEQUENCE  52 // execute position control command sequence
     #define CI_PAUSE          1 // pause sequence
     #define CI_TIMER          2 // timer sequence
     #define CI_PPP_VIEW       3 // power point view with audio profile Band

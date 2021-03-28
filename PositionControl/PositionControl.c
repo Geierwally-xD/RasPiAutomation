@@ -84,6 +84,7 @@ unsigned char PC_Init(void)
 
 	angleData.nickOffset = 0.0;
 	angleData.rollOffset = 0.0;
+	angleData.gierOffset = -90.0; // shift zero position -90 degrees
 	KalmanRoll.KFangle = 0.0;
 	KalmanRoll.Q_angle = 0.001f;
 	KalmanRoll.Q_bias = 0.003f;
@@ -232,10 +233,16 @@ void PC_calcAngleDegrees(unsigned char init)
 	// kalman filter used instead complementary filter
 	// Complementary filter to combine the magnetometer and gyro values for gier.
 	// ComplementaryFilter.z=AA*(ComplementaryFilter.z-gyroData.posZ*elapsedTime) +(1 - AA) * AngleDeg.z;
- printf ("Gyr Gier  %f Mag Gier  %f kalman Gier %f\n",GyroAngle.z, AngleDeg.z, KalmanGier.KFangle);
+    //printf ("Gyr Gier  %f Mag Gier  %f kalman Gier %f\n",GyroAngle.z, AngleDeg.z, KalmanGier.KFangle);
 	// Euler angle gier
 	AngleDeg.z = KalmanGier.KFangle;
     angleData.gier = AngleDeg.z; /********* Euler angle gier final result in degrees ********/
+    angleData.gier += angleData.gierOffset;
+    if(angleData.gier < 0.0)
+    {
+    	angleData.gier += 360;
+    }
+
 }
 
 // calculate nick and gier angles
@@ -315,12 +322,13 @@ unsigned char PC_Move(unsigned char ID)
 	moveDone = 0;
 	moveUp = 0;
 	moveRight = 0;
-	PC_calc_Angles(1);
+
 	for(int i = 0; i<2; i++)
 	{
 		if(i == 0)
 		{
-			if(fabs(teachedPositions[ID].nick - angleData.nick)>0) // difference upper 0 degrees, start nick movement
+			PC_calc_Angles(1); // initialize positions
+			if(fabs(teachedPositions[ID].nick - angleData.nick)>0.5) // difference upper 0 degrees, start nick movement
 			{
 				moveDone |= 0x01;
 				if(teachedPositions[ID].nick > angleData.nick)
@@ -341,9 +349,11 @@ unsigned char PC_Move(unsigned char ID)
 		if(i == 1)
 		{
 			wait(500000); // wait 500ms after finished moved nick before moving gier axis
-			if((fabs(teachedPositions[ID].gier - angleData.gier)>0)&&(teachedPositions[ID].gier>10)&&(teachedPositions[ID].gier<350)) // difference upper 0 degrees, start gier movement
+			PC_calc_Angles(1);  // initialize positions
+			if((fabs(teachedPositions[ID].gier - angleData.gier)>0.5)&&(teachedPositions[ID].gier>10)&&(teachedPositions[ID].gier<350)) // difference upper 0 degrees, start gier movement
 			{
 				moveDone |= 0x02;
+
 				if(teachedPositions[ID].gier > angleData.gier)
 				{
 					digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 1);
@@ -381,9 +391,9 @@ unsigned char PC_Move(unsigned char ID)
 				}
 			}
 
-			PC_calc_Angles(0);
 			if(moveRight) // check gier position and switch off if position reached
 			{
+
 				if(teachedPositions[ID].gier <= angleData.gier)
 				{
 					digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 0);
@@ -398,7 +408,10 @@ unsigned char PC_Move(unsigned char ID)
 					moveDone &= 0x01;
 				}
 			}
-		//	printf("Gier=%f grad Nick=%f  Move=%d\n",angleData.gier,angleData.nick,moveDone);
+			//printf("Gier=%f grad Nick=%f  Move=%d\n",angleData.gier,angleData.nick,moveDone);
+			printf("Gier ist =%f grad Nick=%f Gier Soll=%f\n",angleData.gier,angleData.nick,teachedPositions[ID].gier);
+			while(isExpired(35000,&loopTimer)==0)
+		    {}
 		}
 	}
 	// unlock remote control switches after auto move
@@ -432,6 +445,12 @@ unsigned char PC_Sequencer(int ID)
 	unsigned char audio =    (unsigned char )((ID>>12) & 0x0f); // extract audio profile
 
 	result = AC_Execute((unsigned char)AUDIO_PROFILE + audio ); // switch audio profile
+    //AC_SLIDERSHOW  0x70 // audio profile 1
+    //AC_WORSHIP     0x71 // audio profile 2
+    //AC_PREACHING   0x72 // audio profile 3
+    //AC_TEXT        0x73 // audio profile 4
+    //AC_BAND        0x74 // audio profile 5
+
 	if(result == PC_SUCCESS)
 	{
 		result = IR_SequenceOut(camView);                       // HDMI switch camera view during movement
@@ -538,35 +557,31 @@ void PC_Test(void)
 	{
 		if(result == PC_SUCCESS)
 		{
-		    result = PC_Sequencer(0x000000); // Altar position, laptop view,  audioprofile diashow
+		    result = PC_Sequencer(0x0000); // Altar position, laptop view,  audioprofile diashow
 		}
-		PC_calc_Angles(0);
 		//printf("Gier Ist=%f grad Soll=%f **** Nick Ist=%f  Soll=%f\n",angleData.gier,teachedPositions[0].gier,angleData.nick,teachedPositions[0].nick);
 		wait(1000000);
 		if(result == PC_SUCCESS)
 		{
-		    result = PC_Sequencer(0x010101); // Taufstein position, GoPro view,  audioprofile Gottesdienst
+		    result = PC_Sequencer(0x1101); // Taufstein position, GoPro view,  audioprofile Gottesdienst
 		}
-		PC_calc_Angles(0);
 		//printf("Gier Ist=%f grad Soll=%f **** Nick Ist=%f  Soll=%f\n",angleData.gier,teachedPositions[1].gier,angleData.nick,teachedPositions[1].nick);
 		wait(1000000);
 		if(result == PC_SUCCESS)
 		{
-		    result = PC_Sequencer(0x020202); // Kanzel position, Camcorder 1 view,  audioprofile Predigt
+		    result = PC_Sequencer(0x2202); // Kanzel position, Camcorder 1 view,  audioprofile Predigt
 		}
-		PC_calc_Angles(0);
 		//printf("Gier Ist=%f grad Soll=%f **** Nick Ist=%f  Soll=%f\n",angleData.gier,teachedPositions[2].gier,angleData.nick,teachedPositions[2].nick);
 		wait(1000000);
 		if(result == PC_SUCCESS)
 		{
-		    result = PC_Sequencer(0x030303); // Orgel position, Camcorder 2 view,  audioprofile Text
+		    result = PC_Sequencer(0x3303); // Orgel position, Camcorder 2 view,  audioprofile Text
 		}
-		PC_calc_Angles(0);
 		//printf("Gier Ist=%f grad Soll=%f **** Nick Ist=%f  Soll=%f\n",angleData.gier,teachedPositions[3].gier,angleData.nick,teachedPositions[3].nick);
 		wait(1000000);
 		if(result == PC_SUCCESS)
 		{
-		    result = PC_Sequencer(0x040104); // Mittelgang position, Camcorder 1 view,  audioprofile Band
+		    result = PC_Sequencer(0x4104); // Mittelgang position, Camcorder 1 view,  audioprofile Band
 		}
 		PC_calc_Angles(0);
 		//printf("Gier Ist=%f grad Soll=%f **** Nick Ist=%f  Soll=%f\n",angleData.gier,teachedPositions[4].gier,angleData.nick,teachedPositions[4].nick);
