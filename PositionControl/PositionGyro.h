@@ -92,10 +92,12 @@
 #define LSM6DSL_ACC_FS_16G  0x03
 
 // range of gyroscope
-#define LSM6DSL_GYRO_FS_245DPS  0x00
-#define LSM6DSL_GYRO_FS_500DPS  0x01
-#define LSM6DSL_GYRO_FS_1000DPS 0x02
-#define LSM6DSL_GYRO_FS_2000DPS 0x03
+#define LSM6DSL_GYRO_FS_115DPS  115
+#define LSM6DSL_GYRO_FS_245DPS  245
+#define LSM6DSL_GYRO_FS_338DPS  338
+#define LSM6DSL_GYRO_FS_500DPS  500
+#define LSM6DSL_GYRO_FS_1000DPS 1000
+#define LSM6DSL_GYRO_FS_2000DPS 2000
 
 #define GY_SUCCESS 0 // read accelerometer or/and gyroscope data successful finished
 #define GY_FAILLED 1 // device failure sensor not detected

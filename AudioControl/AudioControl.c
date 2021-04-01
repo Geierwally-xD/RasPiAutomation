@@ -186,9 +186,25 @@ unsigned char AC_Request(unsigned char index)
 	if(index < 10)
 	{
 		volumeRequest[0] = aC_Data.audioProfiles[index][0]; // audio channel 1
+		if((volumeRequest[0] < 0)||(volumeRequest[0] > 63))    // plausibility check
+		{
+			volumeRequest[0] = 0;
+		}
 		volumeRequest[1] = aC_Data.audioProfiles[index][1]; // audio channel 1
+		if((volumeRequest[1] < 0)||(volumeRequest[1] > 63))    // plausibility check
+		{
+			volumeRequest[1] = 0;
+		}
 		volumeRequest[2] = aC_Data.audioProfiles[index][2]; // audio channel 1
+		if((volumeRequest[2] < 0)||(volumeRequest[2] > 63))    // plausibility check
+		{
+			volumeRequest[2] = 0;
+		}
 		volumeRequest[3] = aC_Data.audioProfiles[index][3]; // audio channel 1
+		if((volumeRequest[3] < 0)||(volumeRequest[3] > 63))    // plausibility check
+		{
+			volumeRequest[3] = 0;
+		}
 		printf("Requested Profile data from index %d : 1= %d 2= %d 3= %d 4= %d\n",index,aC_Data.audioProfiles[index][0],aC_Data.audioProfiles[index][1],aC_Data.audioProfiles[index][2],aC_Data.audioProfiles[index][3]);//rvtest
 	}
 	else
@@ -287,13 +303,17 @@ unsigned char AC_Control(void)
 		profileFade = 0;
 		if(volumeSteps[0] != volumeRequest[0])
 		{
-			if(volumeSteps[0] > volumeRequest[0])
+			if((volumeSteps[0] > volumeRequest[0])&&(volumeSteps[0] >0))
 			{
 				volumeSteps[0]--;
 			}
-			else if(volumeSteps[0] < volumeRequest[0])
+			else if((volumeSteps[0] < volumeRequest[0])&&(volumeSteps[0] < 63))
 			{
 				volumeSteps[0]++;
+			}
+			else
+			{
+				volumeRequest[0] = volumeSteps[0];
 			}
 			commandString[7] = '1';
 			sprintf(&commandString[12],"%02d)",volumeSteps[0]);
@@ -305,13 +325,17 @@ unsigned char AC_Control(void)
 
 		if(volumeSteps[1] != volumeRequest[1])
 		{
-			if(volumeSteps[1] > volumeRequest[1])
+			if((volumeSteps[1] > volumeRequest[1])&&(volumeSteps[1] >0))
 			{
 				volumeSteps[1]--;
 			}
-			else if(volumeSteps[1] < volumeRequest[1])
+			else if((volumeSteps[1] < volumeRequest[1])&&(volumeSteps[1] < 63))
 			{
 				volumeSteps[1]++;
+			}
+			else
+			{
+				volumeRequest[1] = volumeSteps[1];
 			}
 			commandString[8] = '2';
 			sprintf(&commandString[12],"%02d)",volumeSteps[1]);
@@ -323,14 +347,19 @@ unsigned char AC_Control(void)
 
 		if(volumeSteps[2] != volumeRequest[2])
 		{
-			if(volumeSteps[2] > volumeRequest[2])
+			if((volumeSteps[2] > volumeRequest[2])&&(volumeSteps[2] >0))
 			{
 				volumeSteps[2]--;
 			}
-			else if(volumeSteps[2] < volumeRequest[2])
+			else if((volumeSteps[2] < volumeRequest[2])&&(volumeSteps[2] < 63))
 			{
 				volumeSteps[2]++;
 			}
+			else
+			{
+				volumeRequest[2] = volumeSteps[2];
+			}
+
 			commandString[9] = '3';
 			sprintf(&commandString[12],"%02d)",volumeSteps[2]);
 			result |=  AC_write(&commandString[0],commandlength);  // send step fade up to audiomix
@@ -341,14 +370,19 @@ unsigned char AC_Control(void)
 
 		if(volumeSteps[3] != volumeRequest[3])
 		{
-			if(volumeSteps[3] > volumeRequest[3])
+			if((volumeSteps[3] > volumeRequest[3])&&(volumeSteps[3] >0))
 			{
 				volumeSteps[3]--;
 			}
-			else if(volumeSteps[3] < volumeRequest[3])
+			else if((volumeSteps[3] < volumeRequest[3])&&(volumeSteps[3] < 63))
 			{
 				volumeSteps[3]++;
 			}
+			else
+			{
+				volumeRequest[3] = volumeSteps[3];
+			}
+
 			commandString[10] = '4';
 			sprintf(&commandString[12],"%02d)",volumeSteps[3]);
 			result |=  AC_write(&commandString[0],commandlength);  // send step fade up to audiomix
@@ -369,18 +403,18 @@ unsigned char AC_Control(void)
 unsigned char AC_Profile(unsigned char index)
 {
 	unsigned char result = AC_SUCCESS;
-	if(index == 0)
-	{
-		result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
-	}
+	//if(index == 0)
+	//{
+	//	result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
+	//}
 
+	//if(result == AC_SUCCESS)
+	//{
+	result|= AC_Request(index);    // read requested volume for profile
+	//}
 	if(result == AC_SUCCESS)
 	{
-		result|= AC_Request(index);    // read requested volume for profile
-	}
-	if(result == AC_SUCCESS)
-	{
-		result|= AC_GetVolume();  // get volume state from audio mix
+	    result|= AC_GetVolume();  // get volume state from audio mix
 	}
 	if(result == AC_SUCCESS)
 	{
@@ -393,7 +427,7 @@ unsigned char AC_Profile(unsigned char index)
 
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 
 	return(result);
@@ -476,7 +510,7 @@ unsigned char AC_Execute(unsigned char index)
 	}
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 	// reset channels for next command
 	commandString[7] = temp;
@@ -518,7 +552,7 @@ unsigned char AC_Test (void)
 	}
 	if(uart0_filestream >0)
 	{
-	    close(uart0_filestream); // close COM Port
+		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
 	return(result);
 }

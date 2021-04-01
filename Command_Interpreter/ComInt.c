@@ -371,7 +371,8 @@ unsigned char CIexecuteCommand(char *argv[])
 			result |= PC_Init();
 			if(result == PC_SUCCESS)
 			{
-				PC_Test_Pos();
+				//PC_Test_Pos();
+				PC_Test();
 			}
 		break;
 		case CI_POS_SEQUENCE: // command sequence position control
