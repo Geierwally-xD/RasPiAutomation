@@ -271,6 +271,13 @@ unsigned char CIsequencer(unsigned char index)
 				result |= IR_SequenceOut(8); // Mute/ Demute Beamer
 			}
 		break;
+		case CI_BEAMER_ON:  //19 switch on Beamer
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(14); // switch on Beamer
+			}
+		break;
 		case CI_START_BACKUP:  //18 starts the backup-recorder
 			result |= IR_init();
 			if(result == IR_SUCCESS)
@@ -283,6 +290,13 @@ unsigned char CIsequencer(unsigned char index)
 			if(result == IR_SUCCESS)
 			{
 				result |= IR_SequenceOut(13); // stopp backup recorder
+			}
+		break;
+		case CI_SWITCH_BACKUP:  //18 starts the backup-recorder
+			result |= IR_init();
+			if(result == IR_SUCCESS)
+			{
+				result |= IR_SequenceOut(11); // switch on/ off backup recorder
 			}
 		break;
 		case CI_SHUTDOWN:  //15 switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
@@ -355,13 +369,6 @@ unsigned char CIexecuteCommand(char *argv[])
 				result |= PC_Teach((unsigned char)index);
 			}
 		break;
-		case CI_POS_CAL: // position control calibrate magnetometer or gyroscope depending index
-			result = PC_Init();
-			if(result == PC_SUCCESS)
-			{
-				result = PC_Calibrate((unsigned char)index);
-			}
-		break;
 		case CI_POS_TEST:
 			result = IR_init();
 			if(result == IR_SUCCESS)
@@ -371,8 +378,14 @@ unsigned char CIexecuteCommand(char *argv[])
 			result |= PC_Init();
 			if(result == PC_SUCCESS)
 			{
-				//PC_Test_Pos();
-				PC_Test();
+				if(index == 0)
+				{
+					PC_Test_Pos();
+				}
+				else
+				{
+					PC_Test();
+				}
 			}
 		break;
 		case CI_POS_SEQUENCE: // command sequence position control

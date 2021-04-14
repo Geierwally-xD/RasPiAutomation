@@ -23,7 +23,6 @@
     #define CI_AUDIO_TEACH   31 // teach audio profile
 	#define CI_POS_CONTROL   40 // position control command
     #define CI_POS_TEACH     41 // position control teach command
-    #define CI_POS_CAL       42 // position control calibrate magnetometer or gyroscope
     #define CI_POS_MOVE_BTN  43 // position control move button pressed
     #define CI_POS_TEST      44 // position control test program, moves to top five positions
 	#define CI_SEQUENCE      50	// execute command sequence
@@ -42,8 +41,10 @@
     #define CI_BEAMER_TOGGLE  13 // toggle Beamer between HDMI1 (laptop) and HDMI 2 (live stream View)
     #define CI_BEAMER_ANALOG  14 // switch Beamer to analog input (video from CD)
     #define CI_BEAMER_MUTE    16 // mute/demute Beamer
+    #define CI_BEAMER_ON      19 // switch on Beamer
     #define CI_START_BACKUP   18 // starts the backup-recorder
     #define CI_STOP_BACKUP    17 // stopps the backup-recorder
+    #define CI_SWITCH_BACKUP  21 // switch on/off backup-recorder
     #define CI_SHUTDOWN       15 // switch Beamer, HDMI switch, Backuprecorder off and shut down Raspberry Pi
     #define CI_TEXT_VIEW      20 // power point view with audio profile Text
 
