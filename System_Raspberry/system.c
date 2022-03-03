@@ -25,30 +25,29 @@
 	memset( &sp, 0, sizeof(sp) );
 	sp.sched_priority = 99;
 	sched_setscheduler( 0, SCHED_FIFO, &sp );
-
-	pinMode(LED_0, OUTPUT); // LED channel 0
-	pinMode(LED_1, OUTPUT); // LED channel 1
-	pinMode(LED_2, OUTPUT); // LED channel 2
-	pinMode(LED_3, OUTPUT); // LED channel 3
-	pinMode(LED_4, OUTPUT); // LED channel 4
-	pinMode(LED_5, OUTPUT); // LED channel 5
-	pinMode(LED_6, OUTPUT); // LED channel 6
-	pinMode(LED_7, OUTPUT); // LED channel 7
-
 	pinMode(DEB_0, OUTPUT); // debug output 0
-
-	//switch off all LEDs
-	digitalWrite(LED_0, 0);
-	digitalWrite(LED_1, 0);
-	digitalWrite(LED_2, 0);
-	digitalWrite(LED_3, 0);
-	digitalWrite(LED_4, 0);
-	digitalWrite(LED_5, 0);
-	digitalWrite(LED_6, 0);
-	digitalWrite(LED_7, 0);
-
 	//switch off debug output
 	digitalWrite(DEB_0, 0);
   }
 
-  
+  void SYSTEM_PWM(int output, int pulseTime, int breakTime)
+   {
+ 	  if(output == SERVO_PWM_ZOOM)
+ 	  {
+ 		  pulseTime /= 10;
+ 		  breakTime /= 10;
+ 		  pinMode(output, PWM_OUTPUT);
+ 		  // set the PWM mode to Mark Space
+ 		  pwmSetMode(PWM_MODE_MS);
+ 		  // set the clock divisor to reduce the 19.2 Mhz clock
+ 		  // to something slower, 5 Khz.
+ 		  // Range of pwmSetClock() is 2 to 4095.
+ 		  pwmSetClock (192);  // 19.2 Mhz divided by 192 is 1000 Khz.
+ 		  // set the PWM range which is the value for the range counter
+ 		  // which is decremented at the modified clock frequency.
+ 		  // times per second since the clock at 19.2 Mhz is being
+ 		  // divided by 192 to give us 100 Khz.
+ 		  pwmSetRange (pulseTime + breakTime);  // range is  counts to give us half second.
+ 		  pwmWrite (output, pulseTime);  // set the Duty Cycle for this range.
+ 	  }
+   }

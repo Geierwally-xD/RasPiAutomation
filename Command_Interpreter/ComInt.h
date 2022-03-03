@@ -27,6 +27,10 @@
     #define CI_POS_TEST      44 // position control test program, moves to top five positions
 	#define CI_SEQUENCE      50	// execute command sequence
     #define CI_POS_SEQUENCE  52 // execute position control command sequence
+    #define CI_ZOOM_MOVE     60 // autozoom move to position
+    #define CI_ZOOM_CALIB    61 // calibrate autozoom
+    #define CI_ZOOM_TEST     62 // autozoom test positions
+    #define CI_ZOOM_SERVO_MOVE 63 // autozoom move servo to position
     #define CI_PAUSE          1 // pause sequence
     #define CI_TIMER          2 // timer sequence
     #define CI_PPP_VIEW       3 // power point view with audio profile Band

@@ -17,15 +17,9 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define LED_0 21 //LED channel 0
-#define LED_1 22 //LED channel 1
-#define LED_2 23 //LED channel 2
-#define LED_3 24 //LED channel 3
-#define LED_4 25 //LED channel 4
-#define LED_5 27 //LED channel 5
-#define LED_6 28 //LED channel 6
-#define LED_7 29 //LED channel 7
 
+
+#define SERVO_PWM_ZOOM 0 // output channel 0 PWM for Servo
 
 // debug outputs
 #define DEB_0 10
@@ -35,5 +29,6 @@ void SYSTEM_Initialize (void);
 void initTimer1(void);
 void alarmWakeup(int sig_num);
 extern long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max);
+extern void SYSTEM_PWM(int output, int pulseTime, int breakTime);
 
 #endif

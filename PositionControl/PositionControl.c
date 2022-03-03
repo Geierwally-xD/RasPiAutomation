@@ -14,6 +14,7 @@
 #include "timer.h"
 #include "AudioControl.h"
 #include "IRcontrol.h"
+#include "ZoomControl.h"
 
 extern PositionSens PosDir_Gier;
 extern PositionSens PosDir_Nick;
@@ -25,8 +26,10 @@ PosAngle_Data angleData = {0.0,0.0,0.0,0.0,0.0,0.0}; // calculated nick gier and
 unsigned char PC_Init(void)
 {
 	unsigned char retval = PC_SUCCESS;
+	// initialize autozoom
+	retval =ZoomControl_init();
     // initialize position sensors
-	retval = PosDirect_init();
+	retval|= PosDirect_init();
 	retval|=PosDirect_setClockWise(&PosDir_Gier,1);
 	retval|=PosDirect_setClockWise(&PosDir_Nick,1);
 
@@ -69,8 +72,11 @@ unsigned char PC_Move(unsigned char ID)
 	unsigned char moveDone = 0;
 	unsigned char moveUp = 0;
 	unsigned char moveRight = 0;
+	unsigned char zoomState = AZ_TASK_INITIALIZE;
 	systemtimer timeoutTimer;
 	systemtimer loopTimer;
+
+	_AZ_Next_Position = _AZ_ZoomValue[ID]; // set next zoom position
 	startMeasurement(&timeoutTimer);
 
 	// lock remote control switches during auto move
@@ -117,7 +123,7 @@ unsigned char PC_Move(unsigned char ID)
 		}
 	}
 
-	while((isExpired(60000000,&timeoutTimer)==0)&&(moveDone > 0)) // start move with timeout after 60 seconds
+	while((isExpired(60000000,&timeoutTimer)==0)&&(moveDone > 0)&& (zoomState > AZ_TASK_IDLE)) // start move with timeout after 60 seconds
 	{
 		startMeasurement(&loopTimer);
 		PC_calc_Angles();
@@ -156,11 +162,13 @@ unsigned char PC_Move(unsigned char ID)
 			}
 		}
 		//printf("Gier ist =%f grad Nick=%f Gier Soll=%f\n",angleData.gier,angleData.nick,teachedPositions[ID].gier);
+		zoomState = ZoomControl_Task(zoomState);// move zoom
 		while(isExpired(35000,&loopTimer)==0)
 		{}
 	}
 	// unlock remote control switches after auto move
 	digitalWrite(PC_OUT_LOCK_REMOTE, 0);
+	retVal = ZoomControlwriteDatFile(); // write actual zoom position
 	return(retVal);
 }
 
@@ -187,7 +195,12 @@ unsigned char PC_Teach(unsigned char ID)
     {   // take null position as zero degree position
     	angleData.gierOffset = teachedPositions[ID].gier;
     }
-    retVal = PC_writeDatFile();
+    else
+    {
+        _AZ_ZoomValue[ID] = _AZ_ZoomValue[20]; // write zoom value to position
+        retVal = ZoomControlwriteDatFile(); // write actual zoom position
+    }
+    retVal |= PC_writeDatFile();
 	return(retVal);
 }
 

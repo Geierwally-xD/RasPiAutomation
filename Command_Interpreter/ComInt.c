@@ -7,11 +7,13 @@
 ==============================================================================*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "ComInt.h"
 #include "IRcontrol.h"
 #include "AudioControl.h"
 #include "timer.h"
 #include "PositionControl.h"
+#include "ZoomControl.h"
 
 CI_Data cI_Data;
 
@@ -308,6 +310,7 @@ unsigned char CIsequencer(unsigned char index)
 			result |= IR_SequenceOut(11); // switch off backup recorder
 			PC_shutdown();
 			IR_shutdown();                // switch off IR output
+			ZoomControl_shutdown();        // switch off PWM
 			//system("sudo shutdown -h now"); moved to shell script
 			result = 99;
 		break;
@@ -403,6 +406,34 @@ unsigned char CIexecuteCommand(char *argv[])
 				result = PC_MoveButton((unsigned char)index);
 			}
 	    break;
+		case CI_ZOOM_MOVE:  // autozoom move to position
+			result = ZoomControl_init();
+			if(result == AZ_SUCCESS)
+			{
+				result = ZoomControl_MoveToPos((uint8_t)index);
+			}
+		break;
+		case CI_ZOOM_CALIB: // calibrate autozoom
+			result = ZoomControl_init();
+			if(result == AZ_SUCCESS)
+			{
+				result = ZoomControl_Calibrate();
+			}
+		break;
+		case CI_ZOOM_TEST:  // autozoom test positions
+			result = ZoomControl_init();
+			if(result == AZ_SUCCESS)
+			{
+				result = ZoomControl_TestPositions();
+			}
+		break;
+		case CI_ZOOM_SERVO_MOVE: // autozoom move servo to position
+			result = ZoomControl_init();
+			if(result == AZ_SUCCESS)
+			{
+				result = ZoomControl_MoveServo((uint8_t)index);
+			}
+		break;
 		case CI_AUDIO_SWITCH: // audio switch command
 			result = AC_Execute((unsigned char)index);
 		break;
