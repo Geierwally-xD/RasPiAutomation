@@ -6,11 +6,11 @@
 C_SRCS += \
 ../Timer/timer.c 
 
-OBJS += \
-./Timer/timer.o 
-
 C_DEPS += \
 ./Timer/timer.d 
+
+OBJS += \
+./Timer/timer.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ Timer/%.o: ../Timer/%.c Timer/subdir.mk
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean-Timer
+
+clean-Timer:
+	-$(RM) ./Timer/timer.d ./Timer/timer.o
+
+.PHONY: clean-Timer
 

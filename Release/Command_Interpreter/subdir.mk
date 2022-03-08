@@ -6,11 +6,11 @@
 C_SRCS += \
 ../Command_Interpreter/ComInt.c 
 
-OBJS += \
-./Command_Interpreter/ComInt.o 
-
 C_DEPS += \
 ./Command_Interpreter/ComInt.d 
+
+OBJS += \
+./Command_Interpreter/ComInt.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ Command_Interpreter/%.o: ../Command_Interpreter/%.c Command_Interpreter/subdir.m
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean-Command_Interpreter
+
+clean-Command_Interpreter:
+	-$(RM) ./Command_Interpreter/ComInt.d ./Command_Interpreter/ComInt.o
+
+.PHONY: clean-Command_Interpreter
 

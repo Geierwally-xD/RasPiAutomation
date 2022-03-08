@@ -29,7 +29,7 @@ uint8_t ZoomControl_init(void)
 	retVal |= ZoomControl_readDatFile(&_AZ_ZoomValue[0]);
 	_AZ_Move_Timeout = 0ul;
 	_AZ_Next_Position = 0;
-	retVal |= ZoomControl_MoveServo(AZ_MIDDLE);
+	//retVal |= ZoomControl_MoveServo(AZ_MIDDLE);
 	return(retVal);
 }
 
@@ -99,7 +99,7 @@ uint8_t ZoomControl_MoveToPos(uint8_t Position)
 	uint8_t retVal = AZ_SUCCESS;
 	unsigned char zoomState = AZ_TASK_INITIALIZE;
 	_AZ_Next_Position = Position;               // set next zoom position
-	while(zoomState > AZ_TASK_INITIALIZE)
+	while(zoomState > AZ_TASK_IDLE)
 	{
 		zoomState = ZoomControl_Task(zoomState);// move zoom
 	}
@@ -113,12 +113,10 @@ uint8_t ZoomControl_Calibrate(void)
 	uint8_t retVal = AZ_SUCCESS;
 	retVal |= ZoomControl_MoveToPos(0); // move to reference position
 	wait(500000);
-	startMeasurement(&_AZ_Move_Timer);  // start timer
+	//startMeasurement(&_AZ_Move_Timer);  // start timer
 	ZoomControl_MoveServo(AZ_CON_RIGHT);// start servo move
-	if(isExpired(_AZ_Config.CalibrationTime,&_AZ_Move_Timer)==1)
-	{
-		ZoomControl_MoveServo(AZ_MIDDLE);     // move servo to middle position
-	}
+	wait(_AZ_Config.CalibrationTime);
+	ZoomControl_MoveServo(AZ_MIDDLE);     // move servo to middle position
 	return(retVal);
 }
 
@@ -126,9 +124,9 @@ uint8_t ZoomControl_Calibrate(void)
 uint8_t ZoomControl_TestPositions(void)
 {
 	uint8_t retVal = AZ_SUCCESS;
-	retVal |= ZoomControl_MoveToPos(100); // move to reference position
+	retVal |= ZoomControl_MoveToPos(10); // move to reference position
 	wait(500000);
-	for(uint8_t i= 0; i< 5; i++)
+	for(uint8_t i= 0; i< 100; i++)
 	{
 		for(uint8_t j= 0; j< 5; j++)
 		{
@@ -176,7 +174,10 @@ uint8_t ZoomControl_Task(uint8_t State)
 		case AZ_TASK_IDLE: // nothing to do wait for start
 		break;
 		case AZ_TASK_INITIALIZE: // calculate position, start timer and start movement
-			if((_AZ_Next_Position)==(_AZ_ZoomValue[20]))
+			if(  (_AZ_Next_Position)==(_AZ_ZoomValue[20])
+			   &&(_AZ_Next_Position!=0)
+			   &&(_AZ_Next_Position!=100)
+			  )
 			{  // next position is equal to previous position, nothing to do
 				State = AZ_TASK_IDLE;
 				break;

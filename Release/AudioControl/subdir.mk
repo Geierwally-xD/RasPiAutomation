@@ -6,11 +6,11 @@
 C_SRCS += \
 ../AudioControl/AudioControl.c 
 
-OBJS += \
-./AudioControl/AudioControl.o 
-
 C_DEPS += \
 ./AudioControl/AudioControl.d 
+
+OBJS += \
+./AudioControl/AudioControl.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ AudioControl/%.o: ../AudioControl/%.c AudioControl/subdir.mk
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean-AudioControl
+
+clean-AudioControl:
+	-$(RM) ./AudioControl/AudioControl.d ./AudioControl/AudioControl.o
+
+.PHONY: clean-AudioControl
 

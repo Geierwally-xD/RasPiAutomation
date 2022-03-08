@@ -19,7 +19,7 @@
 
 
 
-#define SERVO_PWM_ZOOM 0 // output channel 0 PWM for Servo
+#define SERVO_PWM_ZOOM 26 // output channel 0 PWM for Servo
 
 // debug outputs
 #define DEB_0 10

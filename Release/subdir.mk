@@ -6,11 +6,11 @@
 C_SRCS += \
 ../main.c 
 
-OBJS += \
-./main.o 
-
 C_DEPS += \
 ./main.d 
+
+OBJS += \
+./main.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ C_DEPS += \
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean--2e-
+
+clean--2e-:
+	-$(RM) ./main.d ./main.o
+
+.PHONY: clean--2e-
 

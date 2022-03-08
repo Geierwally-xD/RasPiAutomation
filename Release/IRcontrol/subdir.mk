@@ -6,11 +6,11 @@
 C_SRCS += \
 ../IRcontrol/IRcontrol.c 
 
-OBJS += \
-./IRcontrol/IRcontrol.o 
-
 C_DEPS += \
 ./IRcontrol/IRcontrol.d 
+
+OBJS += \
+./IRcontrol/IRcontrol.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ IRcontrol/%.o: ../IRcontrol/%.c IRcontrol/subdir.mk
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean-IRcontrol
+
+clean-IRcontrol:
+	-$(RM) ./IRcontrol/IRcontrol.d ./IRcontrol/IRcontrol.o
+
+.PHONY: clean-IRcontrol
 

@@ -6,11 +6,11 @@
 C_SRCS += \
 ../TestProg/TestProg.c 
 
-OBJS += \
-./TestProg/TestProg.o 
-
 C_DEPS += \
 ./TestProg/TestProg.d 
+
+OBJS += \
+./TestProg/TestProg.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,4 +21,11 @@ TestProg/%.o: ../TestProg/%.c TestProg/subdir.mk
 	@echo 'Finished building: $<'
 	@echo ' '
 
+
+clean: clean-TestProg
+
+clean-TestProg:
+	-$(RM) ./TestProg/TestProg.d ./TestProg/TestProg.o
+
+.PHONY: clean-TestProg
 
