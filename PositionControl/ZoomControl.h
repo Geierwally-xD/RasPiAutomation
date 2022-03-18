@@ -15,8 +15,8 @@ typedef struct
 {
    uint16_t ServoMiddle;      // 16 bit value servo middle position
    uint16_t ServoReference;   // 16 bit value servo reference move position
-   uint16_t ServoControl;     // 16 bit value servo control move position
-   uint16_t CalibrationOffset;// 16 bit value calibration offset
+   uint16_t ServoControl;     // 16 bit value servo control move + position
+   uint16_t ServoControlN;    // 16 bit value servo control move - position
    uint32_t CalibrationTime;  // 32 bit value calibration time
 }AZ_CONFIG;
 

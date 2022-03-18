@@ -103,6 +103,16 @@ uint8_t ZoomControl_MoveToPos(uint8_t Position)
 	{
 		zoomState = ZoomControl_Task(zoomState);// move zoom
 	}
+
+	if((Position == 0)||(Position == 100))
+	{ // move zoom to first list position after reference move
+		_AZ_Next_Position = _AZ_ZoomValue[0];
+		zoomState = AZ_TASK_INITIALIZE;
+		while(zoomState > AZ_TASK_IDLE)
+		{
+			zoomState = ZoomControl_Task(zoomState);// move zoom
+		}
+	}
 	retVal = ZoomControlwriteDatFile(); // write actual zoom position
 	return(retVal);
 }
@@ -112,7 +122,7 @@ uint8_t ZoomControl_Calibrate(void)
 {
 	uint8_t retVal = AZ_SUCCESS;
 	retVal |= ZoomControl_MoveToPos(0); // move to reference position
-	wait(500000);
+	wait(15000000);
 	//startMeasurement(&_AZ_Move_Timer);  // start timer
 	ZoomControl_MoveServo(AZ_CON_RIGHT);// start servo move
 	wait(_AZ_Config.CalibrationTime);
@@ -124,8 +134,8 @@ uint8_t ZoomControl_Calibrate(void)
 uint8_t ZoomControl_TestPositions(void)
 {
 	uint8_t retVal = AZ_SUCCESS;
-	retVal |= ZoomControl_MoveToPos(10); // move to reference position
-	wait(500000);
+	retVal |= ZoomControl_MoveToPos(100); // move to reference position
+	wait(15000000);
 	for(uint8_t i= 0; i< 100; i++)
 	{
 		for(uint8_t j= 0; j< 5; j++)
@@ -155,7 +165,7 @@ uint8_t ZoomControl_MoveServo(uint8_t index)
 	    	Pulse += _AZ_Config.ServoControl;
 		break;
 		case AZ_CON_LEFT:
-	    	Pulse -= _AZ_Config.ServoControl;
+	    	Pulse -= _AZ_Config.ServoControlN;
 		break;
 		default:
 		break;
@@ -182,7 +192,7 @@ uint8_t ZoomControl_Task(uint8_t State)
 				State = AZ_TASK_IDLE;
 				break;
 			}
-			_AZ_Move_Timeout = 2000000; // move timeout reference points 2 sec
+			_AZ_Move_Timeout = 15000000; // move timeout reference points 15 sec
 			switch(_AZ_Next_Position)
 			{
 				case 100:
@@ -197,7 +207,7 @@ uint8_t ZoomControl_Task(uint8_t State)
 						servoMove = AZ_CON_RIGHT; // next value > last value move to right
 					}
 					// calculate move timeout
-					_AZ_Move_Timeout = abs(_AZ_Next_Position - _AZ_ZoomValue[20] ) * _AZ_Config.CalibrationTime / 80;
+					_AZ_Move_Timeout = abs(_AZ_Next_Position - _AZ_ZoomValue[20] ) * _AZ_Config.CalibrationTime / 100;
 				break;
 			}
 			ZoomControl_MoveServo(servoMove);
