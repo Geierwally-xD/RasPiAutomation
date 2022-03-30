@@ -28,27 +28,24 @@
 	pinMode(DEB_0, OUTPUT); // debug output 0
 	//switch off debug output
 	digitalWrite(DEB_0, 0);
+
+	  pinMode(SERVO_PWM_ZOOM, PWM_OUTPUT);
+	  // set the PWM mode to Mark Space
+	  pwmSetMode(PWM_MODE_MS);
+	  // set the clock divisor to reduce the 19.2 Mhz clock
+	  // to something slower, 5 Khz.
+	  // Range of pwmSetClock() is 2 to 4095.
+	  pwmSetClock (192);  // 19.2 Mhz divided by 192 is 1000 Khz.
+	  // set the PWM range which is the value for the range counter
+	  // which is decremented at the modified clock frequency.
+	  // times per second since the clock at 19.2 Mhz is being
+	  // divided by 192 to give us 100 Khz.
   }
 
   void SYSTEM_PWM(int output, int pulseTime, int breakTime)
    {
- 	  if(output == SERVO_PWM_ZOOM)
- 	  {
- 		  pulseTime /= 10;
- 		  breakTime /= 10;
- 		  pinMode(output, PWM_OUTPUT);
- 		  // set the PWM mode to Mark Space
- 		  pwmSetMode(PWM_MODE_MS);
- 		  // set the clock divisor to reduce the 19.2 Mhz clock
- 		  // to something slower, 5 Khz.
- 		  // Range of pwmSetClock() is 2 to 4095.
- 		  pwmSetClock (192);  // 19.2 Mhz divided by 192 is 1000 Khz.
- 		  // set the PWM range which is the value for the range counter
- 		  // which is decremented at the modified clock frequency.
- 		  // times per second since the clock at 19.2 Mhz is being
- 		  // divided by 192 to give us 100 Khz.
- 		  pwmSetRange (pulseTime + breakTime);  // range is  counts to give us half second.
- 		  pwmWrite (output, pulseTime);  // set the Duty Cycle for this range.
- 	  }
-
+	  pulseTime /= 10;
+	  breakTime /= 10;
+	  pwmSetRange (pulseTime + breakTime);  // range is  counts to give us half second.
+	  pwmWrite (output, pulseTime);  // set the Duty Cycle for this range.
    }

@@ -123,7 +123,7 @@ unsigned char PC_Move(unsigned char ID)
 		}
 	}
 
-	while((isExpired(60000000,&timeoutTimer)==0)&&(moveDone > 0)&& (zoomState > AZ_TASK_IDLE)) // start move with timeout after 60 seconds
+	while((isExpired(60000000,&timeoutTimer)==0)&&((moveDone > 0)|| (zoomState > AZ_TASK_IDLE))) // start move with timeout after 60 seconds
 	{
 		startMeasurement(&loopTimer);
 		PC_calc_Angles();
@@ -164,7 +164,9 @@ unsigned char PC_Move(unsigned char ID)
 		//printf("Gier ist =%f grad Nick=%f Gier Soll=%f\n",angleData.gier,angleData.nick,teachedPositions[ID].gier);
 		zoomState = ZoomControl_Task(zoomState);// move zoom
 		while(isExpired(35000,&loopTimer)==0)
-		{}
+		{
+			zoomState = ZoomControl_Task(zoomState);// move zoom
+		}
 	}
 	// unlock remote control switches after auto move
 	digitalWrite(PC_OUT_LOCK_REMOTE, 0);

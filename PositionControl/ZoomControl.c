@@ -122,7 +122,7 @@ uint8_t ZoomControl_Calibrate(void)
 {
 	uint8_t retVal = AZ_SUCCESS;
 	retVal |= ZoomControl_MoveToPos(0); // move to reference position
-	wait(15000000);
+	wait(6000000);
 	//startMeasurement(&_AZ_Move_Timer);  // start timer
 	ZoomControl_MoveServo(AZ_CON_RIGHT);// start servo move
 	wait(_AZ_Config.CalibrationTime);
@@ -135,7 +135,7 @@ uint8_t ZoomControl_TestPositions(void)
 {
 	uint8_t retVal = AZ_SUCCESS;
 	retVal |= ZoomControl_MoveToPos(100); // move to reference position
-	wait(15000000);
+	wait(6000000);
 	for(uint8_t i= 0; i< 100; i++)
 	{
 		for(uint8_t j= 0; j< 5; j++)
@@ -178,10 +178,12 @@ uint8_t ZoomControl_MoveServo(uint8_t index)
 // zoom control move task move to position
 uint8_t ZoomControl_Task(uint8_t State)
 {
+	uint8_t tempState = State;
 	uint8_t servoMove = AZ_CON_LEFT;
-	switch(State)
+	switch(tempState)
 	{
 		case AZ_TASK_IDLE: // nothing to do wait for start
+			ZoomControl_MoveServo(AZ_MIDDLE);     // move servo to middle position
 		break;
 		case AZ_TASK_INITIALIZE: // calculate position, start timer and start movement
 			if(  (_AZ_Next_Position)==(_AZ_ZoomValue[20])
@@ -189,10 +191,10 @@ uint8_t ZoomControl_Task(uint8_t State)
 			   &&(_AZ_Next_Position!=100)
 			  )
 			{  // next position is equal to previous position, nothing to do
-				State = AZ_TASK_IDLE;
+				tempState = AZ_TASK_IDLE;
 				break;
 			}
-			_AZ_Move_Timeout = 15000000; // move timeout reference points 15 sec
+			_AZ_Move_Timeout = 6000000; // move timeout reference points 15 sec
 			switch(_AZ_Next_Position)
 			{
 				case 100:
@@ -212,23 +214,23 @@ uint8_t ZoomControl_Task(uint8_t State)
 			}
 			ZoomControl_MoveServo(servoMove);
 			startMeasurement(&_AZ_Move_Timer);
-			State = AZ_TASK_MOVE;
+			tempState = AZ_TASK_MOVE;
 		break;
 		case AZ_TASK_MOVE:
 			if(isExpired(_AZ_Move_Timeout,&_AZ_Move_Timer)==1)
 			{
 				ZoomControl_MoveServo(AZ_MIDDLE);     // move servo to middle position
-				State = AZ_TASK_IDLE;
+				tempState = AZ_TASK_IDLE;
 				_AZ_ZoomValue[20] = _AZ_Next_Position;// set last position value to next position value
 			}
 		break;
 		default: // undefined state
 			ZoomControl_MoveServo(AZ_MIDDLE); // move servo to middle position
-			State = AZ_TASK_IDLE;
+			tempState = AZ_TASK_IDLE;
 		break;
 
 	}
-	return(State);
+	return(tempState);
 }
 
 // switch off PWM output servo pulse
