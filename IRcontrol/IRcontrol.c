@@ -168,7 +168,7 @@ unsigned char IR_writeDatFile(void)
 	unsigned char result = IR_SUCCESS;
 	FILE *write_ptr;
 
-	write_ptr = fopen("IR_Dat.bin","wb");  // w for write, b for binary
+	write_ptr = fopen("/home/pi/JokiAutomation/config/IR_Dat.bin","wb");  // w for write, b for binary
 	if(write_ptr != NULL)
 	{
 		fwrite(IR_sequences,sizeof(IR_sequences),1,write_ptr); // write 10 bytes from our buffer
@@ -187,7 +187,7 @@ unsigned char IR_readDatFile(void)
 	unsigned char result = IR_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("IR_Dat.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/IR_Dat.bin","rb");  // r for read, b for binary
 	if(read_ptr != NULL)
 	{
 		fread(IR_sequences,sizeof(IR_sequences),1,read_ptr); // read 10 bytes to our buffer

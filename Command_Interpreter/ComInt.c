@@ -24,7 +24,7 @@ unsigned char CI_writeDatFile(void)
 	unsigned char result = AC_SUCCESS;
 	FILE *write_ptr;
 
-	write_ptr = fopen("CI_Dat.bin","wb");  // w for write, b for binary
+	write_ptr = fopen("/home/pi/JokiAutomation/config/CI_Dat.bin","wb");  // w for write, b for binary
 	if(write_ptr != NULL)
 	{
 		fwrite(&cI_Data,sizeof(cI_Data),1,write_ptr); // write dat file
@@ -43,7 +43,7 @@ unsigned char CI_readDatFile(void)
 	unsigned char result = AC_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("CI_Dat.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/CI_Dat.bin","rb");  // r for read, b for binary
 	if(read_ptr != NULL)
 	{
 		fread(&cI_Data,sizeof(cI_Data),1,read_ptr); // read dat file

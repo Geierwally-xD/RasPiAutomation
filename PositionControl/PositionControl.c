@@ -283,7 +283,7 @@ unsigned char PC_writeDatFile(void)
 	unsigned char result = PC_SUCCESS;
 	FILE *write_ptr;
 
-	write_ptr = fopen("PC_Dat.bin","wb");  // w for write, b for binary
+	write_ptr = fopen("/home/pi/JokiAutomation/config/PC_Dat.bin","wb");  // w for write, b for binary
 	if(write_ptr != NULL)
 	{
 		fwrite(teachedPositions,sizeof(teachedPositions),1,write_ptr); // write 10 bytes from our buffer
@@ -302,7 +302,7 @@ unsigned char PC_readDatFile(void)
 	unsigned char result = PC_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("PC_Dat.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/PC_Dat.bin","rb");  // r for read, b for binary
 	if(read_ptr != NULL)
 	{
 		fread(teachedPositions,sizeof(teachedPositions),1,read_ptr); // read 10 bytes to our buffer

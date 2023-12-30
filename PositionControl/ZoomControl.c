@@ -40,7 +40,7 @@ uint8_t ZoomControl_readConfFile(AZ_CONFIG * config)
 	uint8_t result = AZ_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("zoomconfig.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/zoomconfig.bin","rb");  // r for read, b for binary
 	if(read_ptr != 0)
 	{
 		fread(config,sizeof(_AZ_Config),1,read_ptr); // read dat file
@@ -60,7 +60,7 @@ uint8_t ZoomControl_readDatFile(uint8_t * data)
 	uint8_t result = AZ_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("zoomValues.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/zoomValues.bin","rb");  // r for read, b for binary
 	if(read_ptr != 0)
 	{
 		fread(data,sizeof(_AZ_ZoomValue),1,read_ptr); // read dat file
@@ -80,7 +80,7 @@ uint8_t ZoomControlwriteDatFile(void)
 	uint8_t result = AZ_SUCCESS;
 	FILE *write_ptr;
 
-	write_ptr = fopen("zoomValues.bin","wb");  // w for write, b for binary
+	write_ptr = fopen("/home/pi/JokiAutomation/config/zoomValues.bin","wb");  // w for write, b for binary
 	if(write_ptr != NULL)
 	{
 		fwrite(&_AZ_ZoomValue[0],sizeof(_AZ_ZoomValue),1,write_ptr); // write 21 bytes from our buffer

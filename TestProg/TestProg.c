@@ -63,7 +63,7 @@ void TP_Test (void)
 					{
 						maxOffset = offset;
 						printf("\n max Offset = %d \n",(int)(maxOffset));
-						write_ptr = fopen("PC_Offset_Dat.bin","wb");  // w for write, b for binary
+						write_ptr = fopen("/home/pi/JokiAutomation/config/PC_Offset_Dat.bin","wb");  // w for write, b for binary
 						if(write_ptr != NULL)
 						{
 							fwrite(&maxOffset,sizeof(maxOffset),1,write_ptr);

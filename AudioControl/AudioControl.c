@@ -35,7 +35,7 @@ unsigned char AC_writeDatFile(void)
 	unsigned char result = AC_SUCCESS;
 	FILE *write_ptr;
 
-	write_ptr = fopen("AC_Dat.bin","wb");  // w for write, b for binary
+	write_ptr = fopen("/home/pi/JokiAutomation/config/AC_Dat.bin","wb");  // w for write, b for binary
 	if(write_ptr != NULL)
 	{
 		fwrite(&aC_Data,sizeof(aC_Data),1,write_ptr); // write dat file
@@ -54,7 +54,7 @@ unsigned char AC_readDatFile(void)
 	unsigned char result = AC_SUCCESS;
 	FILE *read_ptr;
 
-	read_ptr = fopen("AC_Dat.bin","rb");  // r for read, b for binary
+	read_ptr = fopen("/home/pi/JokiAutomation/config/AC_Dat.bin","rb");  // r for read, b for binary
 	if(read_ptr != NULL)
 	{
 		fread(&aC_Data,sizeof(aC_Data),1,read_ptr); // read dat file
