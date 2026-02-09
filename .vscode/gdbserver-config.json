@@ -1,0 +1,20 @@
+{
+  "Host": "",
+  "User": "pi",
+  "SudoPassword": "raspberry",
+  "PreDebugCommands": [
+    "sudo test -d /home/pi/PSD/GenVariants/64Bit_Raspberry && chmod 777 /home/pi/PSD/GenVariants/64Bit_Raspberry",
+    "sudo test -e /dev/ttyAMA0 && chmod 777 /dev/ttyAMA0",
+    "sudo test -e /dev/mem && chmod 777 /dev/mem",
+    "sudo test -e /dev/gpiomem && chmod 777 /dev/gpiomem",
+    "sudo test -e /dev/i2c-1 && chmod 777 /dev/i2c-1",
+    "sudo getent group gpio >/dev/null 2>&1 && usermod -a -G gpio pi",
+    "sudo getent group spi  >/dev/null 2>&1 && usermod -a -G spi pi"
+  ],
+  "KeyPath": "$env:USERPROFILE\\.ssh\\id_ed25519_raspi",
+  "LocalBinary": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+  "RemoteBinary": "/home/pi/JokiAutomation/RasPiAutomation",
+  "ProgramArgs": [],
+  "RemoteGdbserver": "gdbserver",
+  "Port": 2345
+}

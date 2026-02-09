@@ -1,2 +1,14 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# PowerShell-Skripte immer mit CRLF (Windows)
+*.ps1 text eol=crlf
+
+# C/C++-Quelltexte und Header (plattformneutral, LF)
+*.c   text eol=lf
+*.h   text eol=lf
+
+# Markdown, Shell, Python etc. (plattformneutral, LF)
+*.md  text eol=lf
+*.sh  text eol=lf
+*.py  text eol=lf

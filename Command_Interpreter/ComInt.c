@@ -1,7 +1,7 @@
 /*==============================================================================
 
  Name:           ComInt.c
- Description:    command line interpreter for 64 bit Rspberry Pi
+ Description:    command line interpreter for 64 bit Raspberry Pi
  Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
@@ -9,15 +9,20 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "ComInt.h"
+#include "timer.h"
 #include "IRcontrol.h"
 #include "AudioControl.h"
-#include "timer.h"
 #include "PositionControl.h"
 #include "ZoomControl.h"
+// test command sequencer in while loop
+// execute command sequence
+// summary signal and IR to laptop view
+//16 mute/de-mute Beamer
+// stops the backup-recorder
+// switch Beamer, HDMI switch, Backup recorder off and shut down Raspberry Pi
+// interpret command line argument and call subcomponent
 
 CI_Data cI_Data;
-
-
 // write toggle status into datfile
 unsigned char CI_writeDatFile(void)
 {

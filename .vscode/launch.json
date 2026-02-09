@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug RasPiAutomation",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}\\..\\..\\ToolChains\\SysGCC\\GCC64RasPi4\\gccArmCrossCompiler\\bin\\aarch64-none-linux-gnu-gdb.exe",
+      "miDebuggerServerAddress": "${config:raspi.host}:2345",
+      "targetArchitecture": "arm64",
+      "launchCompleteCommand": "exec-continue",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Disable pagination",
+          "text": "set pagination off",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Skip WiringPi while stepping",
+          "text": "skip -gfi /usr/local/lib/libwiringPi.so*",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "Build + Start gdbserver",
+      "logging": {
+        "engineLogging": true,
+        "trace": true,
+        "traceResponse": true
+      }
+    }
+  ]
+}

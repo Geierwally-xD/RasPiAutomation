@@ -7,6 +7,7 @@
 ==============================================================================*/
 #include <sched.h>
 #include <string.h>
+#include <fcntl.h>
 #include "system.h"
 
   struct sched_param sp;
@@ -18,10 +19,28 @@
 
   void SYSTEM_Initialize (void)
   {
-	int prio = 0;
-	wiringPiSetup();
+	if (wiringPiSetup() < 0)
+	{
+		fprintf(stderr, "wiringPiSetup() failed: %s\n", strerror(errno));
+		return;
+	}
+
+	// wiringPi hardware PWM requires access to /dev/mem (PWM/CLK registers).
+	// Without it, pinMode(..., PWM_OUTPUT) may terminate the process.
+	{
+		int fd = open("/dev/mem", O_RDWR | O_SYNC);
+		if (fd < 0)
+		{
+			fprintf(stderr,
+				"Cannot open /dev/mem (%s). Hardware PWM (PWM_OUTPUT) needs this.\n"
+				"Run with sudo or grant access to /dev/mem.\n",
+				strerror(errno));
+			return;
+		}
+		close(fd);
+	}
 	// set highest priority (application gets one kernel of the RasPi and runs nearly in real time)
-	prio = piHiPri(99);
+	piHiPri(99);
 	memset( &sp, 0, sizeof(sp) );
 	sp.sched_priority = 99;
 	sched_setscheduler( 0, SCHED_FIFO, &sp );

@@ -2,6 +2,8 @@
 #include <stdlib.h>	/* atexit, getenv, malloc */
 #include <stdio.h>	/* fputs, printf, puts, snprintf */
 #include <string.h>	/* memcpy */
+#include <errno.h>	/* errno */
+#include <sys/types.h>	/* uid_t */
 #include <unistd.h>	/* sleep, unlink */
 #include "IRcontrol.h"
 #include "ComInt.h"
@@ -28,39 +30,87 @@ static char *ooi_path;
 void
 ooi_unlink(void)
 {
-	unlink(ooi_path);
+	if (ooi_path)
+		unlink(ooi_path);
 }
+
+static char *
+build_ooi_path(const char *dir)
+{
+	size_t dirlen;
+	const char *sep;
+	uid_t uid;
+	int needed;
+	char *path;
+
+	if (dir == NULL)
+		return NULL;
+	dirlen = strlen(dir);
+	if (dirlen == 0)
+		return NULL;
+	sep = (dir[dirlen - 1] == '/') ? "" : "/";
+	uid = getuid();
+
+	needed = snprintf(NULL, 0, "%s%s%s-%lu", dir, sep, INSTANCE_LOCK, (unsigned long)uid);
+	if (needed < 0)
+		return NULL;
+
+	path = malloc((size_t)needed + 1);
+	if (path == NULL)
+		return NULL;
+
+	snprintf(path, (size_t)needed + 1, "%s%s%s-%lu", dir, sep, INSTANCE_LOCK, (unsigned long)uid);
+	return path;
+}
+
 /* Exit if another instance of this program is running. */
 void
 only_one_instance(void)
 {
 	struct flock fl;
-	size_t dirlen;
 	int fd;
-	char *dir;
+	const char *dir;
+	const char *xdg;
+	const char *dirs[3];
+	int ndirs;
+	int i;
 
 	/*
-	 * Place the lock in the home directory of this user;
-	 * therefore we only check for other instances by the same
-	 * user (and the user can trick us by changing HOME).
+	 * Place the lock in a per-user writable directory:
+	 * XDG_RUNTIME_DIR, then HOME, then /tmp.
+	 * The filename includes the uid to avoid cross-user collisions.
 	 */
+	ndirs = 0;
+	xdg = getenv("XDG_RUNTIME_DIR");
+	if (xdg != NULL && xdg[0] == '/')
+		dirs[ndirs++] = xdg;
 	dir = getenv("HOME");
-	if (dir == NULL || dir[0] != '/') {
-		fputs("Bad home directory.\n", stderr);
+	if (dir != NULL && dir[0] == '/')
+		dirs[ndirs++] = dir;
+	dirs[ndirs++] = "/tmp";
+
+	fd = -1;
+	for (i = 0; i < ndirs; i++) {
+		char *candidate;
+
+		candidate = build_ooi_path(dirs[i]);
+		if (candidate == NULL)
+			continue;
+
+		fd = open(candidate, O_RDWR | O_CREAT, 0600);
+		if (fd >= 0) {
+			ooi_path = candidate;
+			break;
+		}
+
+		free(candidate);
+	}
+
+	if (fd < 0) {
+		fputs("Could not create instance lockfile.\n", stderr);
+		perror("open");
 		exit(1);
 	}
-	dirlen = strlen(dir);
-
-	ooi_path = malloc(dirlen + sizeof("/" INSTANCE_LOCK));
-	if (ooi_path == NULL)
-		fail("malloc");
-	memcpy(ooi_path, dir, dirlen);
-	memcpy(ooi_path + dirlen, "/" INSTANCE_LOCK,
-	    sizeof("/" INSTANCE_LOCK));  /* copies '\0' */
-
-	fd = open(ooi_path, O_RDWR | O_CREAT, 0600);
-	if (fd < 0)
-		fail(ooi_path);
 
 	fl.l_start = 0;
 	fl.l_len = 0;
