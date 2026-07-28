@@ -102,21 +102,31 @@ if (-not $BuildDir) {
 }
 
 if (-not $ToolchainsRoot) {
-    $settingsPath = Join-Path $PSScriptRoot 'settings.json'
-    $fromSettings = Get-VSCodeJsonSetting -SettingsPath $settingsPath -Key 'custom.toolchainsRoot'
-    $fromSettings = Expand-KnownTokens -Value $fromSettings
-
-    if ($fromSettings) {
-        if (-not [System.IO.Path]::IsPathRooted($fromSettings)) {
-            $fromSettings = Join-Path $WorkspaceFolder $fromSettings
-        }
-        $ToolchainsRoot = $fromSettings
+    # 1. Check environment variable ToolChain (consistent with reference project and toolchain-arm64.cmake)
+    if ($env:ToolChain -and (Test-Path -LiteralPath $env:ToolChain)) {
+        $ToolchainsRoot = $env:ToolChain
+        Write-Host "Using ToolChain from environment variable: $ToolchainsRoot" -ForegroundColor Green
     } else {
-        $found = Find-ToolchainsRoot -StartFolder $WorkspaceFolder
-        if ($found) {
-            $ToolchainsRoot = $found
+        # 2. Check VS Code settings
+        $settingsPath = Join-Path $PSScriptRoot 'settings.json'
+        $fromSettings = Get-VSCodeJsonSetting -SettingsPath $settingsPath -Key 'custom.toolchainsRoot'
+        $fromSettings = Expand-KnownTokens -Value $fromSettings
+
+        if ($fromSettings) {
+            if (-not [System.IO.Path]::IsPathRooted($fromSettings)) {
+                $fromSettings = Join-Path $WorkspaceFolder $fromSettings
+            }
+            $ToolchainsRoot = $fromSettings
         } else {
-            $ToolchainsRoot = Join-Path $WorkspaceFolder '..\..\ToolChains'
+            # 3. Search recursively upward
+            $found = Find-ToolchainsRoot -StartFolder $WorkspaceFolder
+            if ($found) {
+                $ToolchainsRoot = $found
+                Write-Host "ToolChain env not set, found ToolChains at: $ToolchainsRoot" -ForegroundColor Yellow
+            } else {
+                $ToolchainsRoot = Join-Path $WorkspaceFolder '..\..\ToolChains'
+                Write-Host "ToolChain env not set, using fallback: $ToolchainsRoot" -ForegroundColor Yellow
+            }
         }
     }
 }

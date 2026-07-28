@@ -8,10 +8,8 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 #include "hw.h"
+#include "pigpio_adapter.h"
 #include <signal.h>
-#include <wiringPiI2C.h>
-#include <wiringPiSPI.h>
-#include <wiringPi.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -25,7 +23,7 @@
 #define DEB_0 10
 
 
-void SYSTEM_Initialize (void);
+int SYSTEM_Initialize (void);
 void initTimer1(void);
 void alarmWakeup(int sig_num);
 extern long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max);

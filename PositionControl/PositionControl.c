@@ -7,11 +7,11 @@
 ==============================================================================*/
 #include <stdio.h>
 #include <string.h>
-#include <wiringPi.h>
 #include <math.h>
 #include "PositionControl.h"
 #include "PositionDirect.h"
 #include "timer.h"
+#include "system.h"
 #include "AudioControl.h"
 #include "IRcontrol.h"
 #include "ZoomControl.h"
@@ -80,7 +80,7 @@ unsigned char PC_Move(unsigned char ID)
 	startMeasurement(&timeoutTimer);
 
 	// lock remote control switches during auto move
-	digitalWrite(PC_OUT_LOCK_REMOTE, 1);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 1);
 	moveDone = 0;
 	moveUp = 0;
 	moveRight = 0;
@@ -91,15 +91,15 @@ unsigned char PC_Move(unsigned char ID)
 		moveDone |= 0x01;
 		if(teachedPositions[ID].nick > angleData.nick)
 		{
-			digitalWrite(PC_OUT_MOVE_NICK_UP, 0);
-			digitalWrite(PC_OUT_MOVE_NICK_DOWN, 1);
+			RPI_Write(PC_OUT_MOVE_NICK_UP, 0);
+			RPI_Write(PC_OUT_MOVE_NICK_DOWN, 1);
 			moveUp = 1;
 			//printf("move up\n");
 		}
 		else
 		{
-			digitalWrite(PC_OUT_MOVE_NICK_DOWN, 0);
-			digitalWrite(PC_OUT_MOVE_NICK_UP, 1);
+			RPI_Write(PC_OUT_MOVE_NICK_DOWN, 0);
+			RPI_Write(PC_OUT_MOVE_NICK_UP, 1);
 			//printf("move down\n");
 		}
 	}
@@ -110,15 +110,15 @@ unsigned char PC_Move(unsigned char ID)
 
 		if(teachedPositions[ID].gier > angleData.gier)
 		{
-			digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 1);
-			digitalWrite(PC_OUT_MOVE_GIER_LEFT, 0);
+			RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 1);
+			RPI_Write(PC_OUT_MOVE_GIER_LEFT, 0);
 			moveRight = 1;
 			//printf("move right\n");
 		}
 		else
 		{
-			digitalWrite(PC_OUT_MOVE_GIER_LEFT, 1);
-			digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 0);
+			RPI_Write(PC_OUT_MOVE_GIER_LEFT, 1);
+			RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 0);
 			//printf("move left\n");
 		}
 	}
@@ -131,7 +131,7 @@ unsigned char PC_Move(unsigned char ID)
 		{
 			if(teachedPositions[ID].nick <= angleData.nick)
 			{
-				digitalWrite(PC_OUT_MOVE_NICK_DOWN,0);
+				RPI_Write(PC_OUT_MOVE_NICK_DOWN,0);
 				moveDone &= 0x02;
 			}
 		}
@@ -139,7 +139,7 @@ unsigned char PC_Move(unsigned char ID)
 		{
 			if(teachedPositions[ID].nick >= angleData.nick)
 			{
-				digitalWrite(PC_OUT_MOVE_NICK_UP,0);
+				RPI_Write(PC_OUT_MOVE_NICK_UP,0);
 				moveDone &= 0x02;
 			}
 		}
@@ -149,7 +149,7 @@ unsigned char PC_Move(unsigned char ID)
 
 			if(teachedPositions[ID].gier <= angleData.gier)
 			{
-				digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 0);
+				RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 0);
 				moveDone &= 0x01;
 			}
 		}
@@ -157,7 +157,7 @@ unsigned char PC_Move(unsigned char ID)
 		{
 			if(teachedPositions[ID].gier >= angleData.gier)
 			{
-				digitalWrite(PC_OUT_MOVE_GIER_LEFT, 0);
+				RPI_Write(PC_OUT_MOVE_GIER_LEFT, 0);
 				moveDone &= 0x01;
 			}
 		}
@@ -169,7 +169,7 @@ unsigned char PC_Move(unsigned char ID)
 		}
 	}
 	// unlock remote control switches after auto move
-	digitalWrite(PC_OUT_LOCK_REMOTE, 0);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 0);
 	retVal = ZoomControlwriteDatFile(); // write actual zoom position
 	return(retVal);
 }
@@ -244,34 +244,34 @@ unsigned char PC_MoveButton (unsigned char ID)
 	if(ID != PC_BUTTON_RELEASED)
 	{
 		// lock remote control switches on move
-		digitalWrite(PC_OUT_LOCK_REMOTE, 1);
+		RPI_Write(PC_OUT_LOCK_REMOTE, 1);
 	}
 	switch(ID)
 	{
 		case PC_BUTTON_UP:
-    		digitalWrite(PC_OUT_MOVE_NICK_DOWN, 0);
-    		digitalWrite(PC_OUT_MOVE_NICK_UP, 1);
+	    		RPI_Write(PC_OUT_MOVE_NICK_DOWN, 0);
+	    		RPI_Write(PC_OUT_MOVE_NICK_UP, 1);
 		break;
 		case PC_BUTTON_DOWN:
-    		digitalWrite(PC_OUT_MOVE_NICK_UP, 0);
-    		digitalWrite(PC_OUT_MOVE_NICK_DOWN, 1);
+	    		RPI_Write(PC_OUT_MOVE_NICK_UP, 0);
+	    		RPI_Write(PC_OUT_MOVE_NICK_DOWN, 1);
 		break;
 		case PC_BUTTON_RIGHT:
-    		digitalWrite(PC_OUT_MOVE_GIER_LEFT, 0);
-    		digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 1);
+	    		RPI_Write(PC_OUT_MOVE_GIER_LEFT, 0);
+	    		RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 1);
 		break;
 		case PC_BUTTON_LEFT:
-    		digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 0);
-    		digitalWrite(PC_OUT_MOVE_GIER_LEFT, 1);
+	    		RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 0);
+	    		RPI_Write(PC_OUT_MOVE_GIER_LEFT, 1);
 		break;
 		default:
 		case PC_BUTTON_RELEASED:
-    		digitalWrite(PC_OUT_MOVE_NICK_UP, 0);
-    		digitalWrite(PC_OUT_MOVE_NICK_DOWN, 0);
-    		digitalWrite(PC_OUT_MOVE_GIER_RIGHT, 0);
-    		digitalWrite(PC_OUT_MOVE_GIER_LEFT, 0);
+	    		RPI_Write(PC_OUT_MOVE_NICK_UP, 0);
+	    		RPI_Write(PC_OUT_MOVE_NICK_DOWN, 0);
+	    		RPI_Write(PC_OUT_MOVE_GIER_RIGHT, 0);
+	    		RPI_Write(PC_OUT_MOVE_GIER_LEFT, 0);
 			// unlock remote control switches after move
-			digitalWrite(PC_OUT_LOCK_REMOTE, 0);
+			RPI_Write(PC_OUT_LOCK_REMOTE, 0);
 		break;
 	}
 	return(result);
@@ -322,7 +322,7 @@ void PC_Test(void)
 	unsigned char result = PC_SUCCESS;
 	startMeasurement(&testTimer);
 	// lock remote control switches on test program
-	digitalWrite(PC_OUT_LOCK_REMOTE, 1);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 1);
 
 	while(isExpired(300000000,&testTimer)==0) // five minutes test time
 	{
@@ -359,7 +359,7 @@ void PC_Test(void)
 		wait(1000000);
 	}
 	// unlock remote control switches on test program
-	digitalWrite(PC_OUT_LOCK_REMOTE, 0);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 0);
 }
 
 
@@ -371,7 +371,7 @@ void PC_Test_Pos(void)
 	unsigned char positionIndex = 0;
 	startMeasurement(&testTimer);
 	// lock remote control switches on test program
-	digitalWrite(PC_OUT_LOCK_REMOTE, 1);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 1);
 	while((isExpired(300000000,&testTimer)==0)&&(result == PC_SUCCESS)) // five minutes test time
 	{
 		result = PC_Move(positionIndex);
@@ -388,20 +388,21 @@ void PC_Test_Pos(void)
 		wait(1000000); // wait one second befor move to next position
 	}
 	// unlock remote control switches on test program
-	digitalWrite(PC_OUT_LOCK_REMOTE, 0);
+	RPI_Write(PC_OUT_LOCK_REMOTE, 0);
 }
 
 // switch off all used gpios
 void PC_shutdown(void)
 {
-	digitalWrite(PC_OUT_MOVE_GIER_LEFT,0);    // relais output signal move gier to left
-    digitalWrite(PC_OUT_MOVE_GIER_RIGHT,0);   // relais output signal move gier to right
-    digitalWrite(PC_OUT_MOVE_NICK_UP,0);      // relais output signal move nick up
-    digitalWrite(PC_OUT_MOVE_NICK_DOWN,0);    // relais output signal move nick down
-    digitalWrite(PC_OUT_LOCK_REMOTE,0);       // relais output signal lock remote control
-    digitalWrite(PC_OUT_1,0);                 // relais output signal 1
-    digitalWrite(PC_OUT_2,0);                 // relais output signal 2
-    digitalWrite(PC_OUT_3,0);                 // relais output signal 3
+	PosDirect_shutdown();
+	RPI_Write(PC_OUT_MOVE_GIER_LEFT,0);    // relais output signal move gier to left
+	RPI_Write(PC_OUT_MOVE_GIER_RIGHT,0);   // relais output signal move gier to right
+	RPI_Write(PC_OUT_MOVE_NICK_UP,0);      // relais output signal move nick up
+	RPI_Write(PC_OUT_MOVE_NICK_DOWN,0);    // relais output signal move nick down
+	RPI_Write(PC_OUT_LOCK_REMOTE,0);       // relais output signal lock remote control
+	RPI_Write(PC_OUT_1,0);                 // relais output signal 1
+	RPI_Write(PC_OUT_2,0);                 // relais output signal 2
+	RPI_Write(PC_OUT_3,0);                 // relais output signal 3
 }
 
 

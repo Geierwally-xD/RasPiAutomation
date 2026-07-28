@@ -85,14 +85,14 @@ $cmd = @(
     'LIBC=$(ls -1 /lib/*-linux-gnu/libc.so.6 /lib/*/libc.so.6 2>/dev/null | head -n 1 || true); echo "libc: ${LIBC:-not_found}"; test -n "$LIBC" && strings "$LIBC" 2>/dev/null | grep -E "^GLIBC_" | sort -V | tail -n 10 || true',
     'echo "=== libcrypt ==="',
     'ls -l /lib/aarch64-linux-gnu/libcrypt.so* /usr/lib/aarch64-linux-gnu/libcrypt.so* 2>/dev/null || true',
-    'echo "=== wiringPi ==="',
-    'ls -l /usr/local/lib/libwiringPi.so* /usr/lib/*/libwiringPi.so* 2>/dev/null || true',
-    'WPI=$(ls -1 /usr/local/lib/libwiringPi.so /usr/lib/*/libwiringPi.so 2>/dev/null | head -n 1 || true); echo "wiringPi: ${WPI:-not_found}"; test -n "$WPI" && readelf -V "$WPI" 2>/dev/null | head -n 80 || true',
+    'echo "=== pigpio ==="',
+    'ls -l /usr/lib*/libpigpio.so* /usr/local/lib/libpigpio.so* 2>/dev/null || true',
+    'PGPIO=$(ls -1 /usr/lib*/libpigpio.so /usr/local/lib/libpigpio.so 2>/dev/null | head -n 1 || true); echo "pigpio: ${PGPIO:-not_found}"; test -n "$PGPIO" && readelf -V "$PGPIO" 2>/dev/null | head -n 80 || true',
     'echo "=== remote binary ==="',
     "echo bin: '$remoteBinaryBash'; ls -l '$remoteBinaryBash' 2>/dev/null || true",
     "test -e '$remoteBinaryBash' && file '$remoteBinaryBash' || true",
     "test -e '$remoteBinaryBash' && echo --- ldd --- && ldd '$remoteBinaryBash' || true",
-    "test -e '$remoteBinaryBash' && echo --- wiringPi resolved --- && ldd '$remoteBinaryBash' 2>/dev/null | grep -i wiringpi || true"
+    "test -e '$remoteBinaryBash' && echo --- pigpio resolved --- && ldd '$remoteBinaryBash' 2>/dev/null | grep -i pigpio || true"
 ) -join '; '
 
 $sshArgs = @(

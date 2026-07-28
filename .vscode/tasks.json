@@ -1,8 +1,115 @@
 {
   "version": "2.0.0",
   "tasks": [
+    // ── 1. CMake Configure (RasPi) ──────────────────────────────────────────
     {
-      "label": "RasPi: Diagnose glibc/WiringPi",
+      "label": "1 ▸ CMake Configure (RasPi)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\cmake_configure_rpi.ps1",
+        "-WorkspaceFolder",
+        "${workspaceFolder}",
+        "-BuildDir",
+        "${workspaceFolder}\\build-rpi"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ── 2. CMake Build (RasPi) ──────────────────────────────────────────────
+    {
+      "label": "2 ▸ CMake Build (RasPi)",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build-rpi"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ── 3. CMake Clean (RasPi) ──────────────────────────────────────────────
+    {
+      "label": "3 ▸ CMake Clean (RasPi)",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build-rpi",
+        "--target",
+        "clean"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ── 4. Build Debug + Start GDBServer ────────────────────────────────────
+    {
+      "label": "4 ▸ Build Debug + Start GDBServer",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "2 ▸ CMake Build (RasPi)",
+        "5 ▸ Start GDBServer"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+
+    // ── 5. Start GDBServer ──────────────────────────────────────────────────
+    {
+      "label": "5 ▸ Start GDBServer",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.vscode/start_gdbserver.ps1",
+        "-Yes"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^\\[ERROR\\]\\s+(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Preparing remote directory",
+          "endsPattern": "^gdbserver started on"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      }
+    },
+
+    // ── 6. RasPi: Diagnose glibc/pigpio ────────────────────────────────────
+    {
+      "label": "6 ▸ RasPi: Diagnose glibc/pigpio",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -16,11 +123,16 @@
         "-UserName",
         "${config:raspi.user}"
       ],
-      "group": "none",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
+
+    // ── 7. RasPi: Sync sysroot (optional) ───────────────────────────────────
     {
-      "label": "RasPi: Sync sysroot (optional)",
+      "label": "7 ▸ RasPi: Sync sysroot (optional)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -34,11 +146,16 @@
         "-UserName",
         "${config:raspi.user}"
       ],
-      "group": "none",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
+
+    // ── 8. RasPi: Enable /dev/mem (udev) ────────────────────────────────────
     {
-      "label": "RasPi: Enable /dev/mem (udev)",
+      "label": "8 ▸ RasPi: Enable /dev/mem (udev)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -56,89 +173,24 @@
         "-SudoPassword",
         "${config:raspi.sudoPassword}"
       ],
-      "group": "none",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
+
+    // ── 9. Set ToolChain Environment Variable ───────────────────────────────
     {
-      "label": "Start gdbserver (script)",
+      "label": "9 ▸ Set ToolChain Environment Variable",
       "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\.vscode\\start_gdbserver.ps1",
-        "-HostName",
-        "${config:raspi.host}",
-        "-User",
-        "${config:raspi.user}",
-        "-CreateKeyIfMissing",
-        "${config:raspi.createKeyIfMissing}",
-        "-InstallPublicKey",
-        "${config:raspi.installPublicKey}",
-        "-Yes"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": "none",
-      "problemMatcher": []
-    },
-    {
-      "label": "Build + Start gdbserver",
-      "dependsOn": [
-        "CMake: Build (RasPi)",
-        "Start gdbserver (script)"
-      ],
-      "dependsOrder": "sequence",
-      "group": "build",
-      "problemMatcher": []
-    },
-    {
-      "label": "CMake: Configure (RasPi)",
-      "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\.vscode\\cmake_configure_rpi.ps1",
-        "-WorkspaceFolder",
-        "${workspaceFolder}",
-        "-BuildDir",
-        "${workspaceFolder}\\build-rpi"
-      ],
-      "group": "build",
-      "problemMatcher": []
-    },
-    {
-      "label": "CMake: Build (RasPi)",
-      "type": "shell",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "${workspaceFolder}/build-rpi"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CMake: Clean (RasPi)",
-      "type": "shell",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "${workspaceFolder}/build-rpi",
-        "--target",
-        "clean"
-      ],
-      "group": "none",
-      "problemMatcher": []
+      "command": "${workspaceFolder}/SetToolChain.bat",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      }
     }
   ]
 }

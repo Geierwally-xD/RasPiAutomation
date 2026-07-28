@@ -145,7 +145,10 @@ int main(int argc, char *argv[])
 	unsigned char result = RASPI_AUTOMATION_SUCCESS;
 	if(argc == 3)
 	{
-		SYSTEM_Initialize();
+		if (SYSTEM_Initialize() != 0)
+		{
+			return RASPI_AUTOMATION_CALL_FAILURE;
+		}
 		initSystemTimer();
 		ACinit();
 		result = CIexecuteCommand(argv);

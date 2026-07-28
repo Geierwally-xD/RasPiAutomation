@@ -17,54 +17,32 @@
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
 
-  void SYSTEM_Initialize (void)
+  int SYSTEM_Initialize (void)
   {
-	if (wiringPiSetup() < 0)
+	if (RPI_Initialize() < 0)
 	{
-		fprintf(stderr, "wiringPiSetup() failed: %s\n", strerror(errno));
-		return;
+		fprintf(stderr, "pigpio initialization failed: %s\n", RPI_LastError());
+		return -1;
 	}
+	atexit(RPI_Terminate);
 
-	// wiringPi hardware PWM requires access to /dev/mem (PWM/CLK registers).
-	// Without it, pinMode(..., PWM_OUTPUT) may terminate the process.
-	{
-		int fd = open("/dev/mem", O_RDWR | O_SYNC);
-		if (fd < 0)
-		{
-			fprintf(stderr,
-				"Cannot open /dev/mem (%s). Hardware PWM (PWM_OUTPUT) needs this.\n"
-				"Run with sudo or grant access to /dev/mem.\n",
-				strerror(errno));
-			return;
-		}
-		close(fd);
-	}
 	// set highest priority (application gets one kernel of the RasPi and runs nearly in real time)
-	piHiPri(99);
 	memset( &sp, 0, sizeof(sp) );
 	sp.sched_priority = 99;
-	sched_setscheduler( 0, SCHED_FIFO, &sp );
-	pinMode(DEB_0, OUTPUT); // debug output 0
+	if (sched_setscheduler(0, SCHED_FIFO, &sp) < 0)
+	{
+		fprintf(stderr, "Warning: failed to elevate scheduler priority: %s\n", strerror(errno));
+	}
+	RPI_SetMode(DEB_0, RPI_MODE_OUTPUT); // debug output 0
 	//switch off debug output
-	digitalWrite(DEB_0, 0);
+	RPI_Write(DEB_0, 0);
 
-	  pinMode(SERVO_PWM_ZOOM, PWM_OUTPUT);
-	  // set the PWM mode to Mark Space
-	  pwmSetMode(PWM_MODE_MS);
-	  // set the clock divisor to reduce the 19.2 Mhz clock
-	  // to something slower, 5 Khz.
-	  // Range of pwmSetClock() is 2 to 4095.
-	  pwmSetClock (192);  // 19.2 Mhz divided by 192 is 1000 Khz.
-	  // set the PWM range which is the value for the range counter
-	  // which is decremented at the modified clock frequency.
-	  // times per second since the clock at 19.2 Mhz is being
-	  // divided by 192 to give us 100 Khz.
+	RPI_SetMode(SERVO_PWM_ZOOM, RPI_MODE_OUTPUT);
+	return 0;
   }
 
   void SYSTEM_PWM(int output, int pulseTime, int breakTime)
    {
-	  pulseTime /= 10;
-	  breakTime /= 10;
-	  pwmSetRange (pulseTime + breakTime);  // range is  counts to give us half second.
-	  pwmWrite (output, pulseTime);  // set the Duty Cycle for this range.
+	  (void)breakTime;
+	  RPI_ServoPulse(output, (unsigned)pulseTime);
    }

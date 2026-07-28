@@ -5,7 +5,7 @@ Hardware - control of Geierwally's JoKi Automation video \ audio streaming contr
 - four channel software contrtolled audio mixer connected to RasPi with RS232/USB adapter
 - camcorder position control done over GPIOs and Relaismodule; Positions read in over I²C interface with AS5048 angle encoder; 
 - running on Raspberry Pi 3B+ under 64 bit Gentoo operating system with hight priority
-- hardware driver realized with wiring Pi library
+- hardware driver realized with pigpio library via a local compatibility adapter
 - compiled with aarch64-linux-gnu cross compiler on win10 PC
 - communication with winforms application of JoKi Automation over ssh 
 See also Videoclip
@@ -18,7 +18,7 @@ Hardware Steuerung zu Geierwally's JoKi Automation Video \ Audio Livestream und 
 - Vier Kanal softwaregesteuerter Audiomixer mit RasPi über RS232/USB Adapter verbunden
 - Camcorder position control Lagesteuerung über GPIOs und Relaismodul gesteuert. Lageerfassung über zwei I²C AS5048 Winkelencoder 
 - Software läuft auf Raspberry Pi 3B+ unter 64 bit Gentoo - Betriebssystem mit höchster Priorität.
-- Hardwaretreiber umgesetzt mit Wiring Pi Bibliothek
+- Hardwaretreiber umgesetzt mit pigpio-Bibliothek ueber einen lokalen Kompatibilitaetsadapter
 - Compiliert mit aarch64-linux-gnu Cross - Compiler auf Win10 PC
 - Kommunikation RasPi mit JoKi Automation Winforms Applikation über ssh.
 Videoclip:

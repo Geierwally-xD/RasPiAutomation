@@ -236,6 +236,7 @@ uint8_t ZoomControl_Task(uint8_t State)
 // switch off PWM output servo pulse
 void ZoomControl_shutdown(void)
 {
-	pinMode(SERVO_PWM_ZOOM, OUTPUT);
-	digitalWrite(SERVO_PWM_ZOOM, 0);
+	RPI_SetMode(SERVO_PWM_ZOOM, RPI_MODE_OUTPUT);
+	RPI_ServoOff(SERVO_PWM_ZOOM);
+	RPI_Write(SERVO_PWM_ZOOM, 0);
 }

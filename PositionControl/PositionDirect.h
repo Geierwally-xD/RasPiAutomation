@@ -72,6 +72,7 @@ typedef struct
 	//AMS_AS5048B(uint8_t chipAddress);
 
 	extern unsigned char PosDirect_init(void);                                         // to init the object, must be called in the setup loop
+	extern void          PosDirect_shutdown(void);
 	extern unsigned char PosDirect_setClockWise(PositionSens* psensor,uint8_t cw );    //set clockwise counting, default is false (native sensor)
 	extern unsigned char PosDirect_progRegister(PositionSens* psensor,uint8_t regVal); //nothing so far - manipulate the OTP register
 	extern unsigned char PosDirect_doProg(PositionSens* psensor); 				       //progress programming slave address OTP

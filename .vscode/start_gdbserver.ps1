@@ -1,5 +1,5 @@
 param(
-    [string]$ConfigFile = "$PSScriptRoot\\gdbserver-config.json",
+    [string]$ConfigFile = "$PSScriptRoot\\gdbserver-config.local.json",
     [Alias('Host')]
     [string]$HostName,
     [string]$User,
@@ -119,6 +119,7 @@ function Test-SshKeyAuth {
         '-i', $KeyPath,
         '-o', 'BatchMode=yes',
         '-o', 'PasswordAuthentication=no',
+        '-o', 'StrictHostKeyChecking=accept-new',
         $RemoteTarget,
         'true'
     )
@@ -174,16 +175,87 @@ function Install-PublicKeyOnPi {
     }
 }
 
+function Read-JsonWithComments {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+
+    $raw = Get-Content -LiteralPath $Path -Raw
+    $sb = New-Object System.Text.StringBuilder
+    $inString = $false
+    $escape = $false
+    $inLineComment = $false
+    $inBlockComment = $false
+
+    for ($i = 0; $i -lt $raw.Length; $i++) {
+        $ch = $raw[$i]
+        $next = if ($i + 1 -lt $raw.Length) { $raw[$i + 1] } else { [char]0 }
+
+        if ($inLineComment) {
+            if ($ch -eq "`n" -or $ch -eq "`r") {
+                $inLineComment = $false
+                [void]$sb.Append($ch)
+            }
+            continue
+        }
+
+        if ($inBlockComment) {
+            if ($ch -eq '*' -and $next -eq '/') {
+                $inBlockComment = $false
+                $i++
+            }
+            continue
+        }
+
+        if ($inString) {
+            [void]$sb.Append($ch)
+            if ($escape) {
+                $escape = $false
+            } elseif ($ch -eq '\\') {
+                $escape = $true
+            } elseif ($ch -eq '"') {
+                $inString = $false
+            }
+            continue
+        }
+
+        if ($ch -eq '"') {
+            $inString = $true
+            [void]$sb.Append($ch)
+            continue
+        }
+
+        if ($ch -eq '/' -and $next -eq '/') {
+            $inLineComment = $true
+            $i++
+            continue
+        }
+
+        if ($ch -eq '/' -and $next -eq '*') {
+            $inBlockComment = $true
+            $i++
+            continue
+        }
+
+        [void]$sb.Append($ch)
+    }
+
+    try {
+        return ($sb.ToString() | ConvertFrom-Json)
+    } catch {
+        return $null
+    }
+}
+
 function Get-VSCodeSettingValue {
     param([Parameter(Mandatory = $true)][string]$Key)
 
     $settingsPath = Join-Path $PSScriptRoot 'settings.json'
     if (-not (Test-Path -LiteralPath $settingsPath)) { return $null }
-    try {
-        $json = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
-    } catch {
-        return $null
-    }
+
+    $json = Read-JsonWithComments -Path $settingsPath
+    if ($null -eq $json) { return $null }
+
     $prop = $json.PSObject.Properties[$Key]
     if ($null -eq $prop) { return $null }
     return $prop.Value
@@ -278,9 +350,22 @@ function Find-FirstExistingPath {
     return $null
 }
 
+$configWasProvided = $PSBoundParameters.ContainsKey('ConfigFile')
+if (-not $configWasProvided) {
+    $ConfigFile = Find-FirstExistingPath -Candidates @(
+        (Join-Path $PSScriptRoot 'gdbserver-config.local.json'),
+        (Join-Path $PSScriptRoot 'gdbserver-config.json'),
+        (Join-Path $PSScriptRoot 'gdbserver-config.example.json')
+    )
+
+    if (-not $ConfigFile) {
+        $ConfigFile = Join-Path $PSScriptRoot 'gdbserver-config.local.json'
+    }
+}
+
 # Load defaults from JSON if present
-if (Test-Path $ConfigFile) {
-    $cfg = Get-Content $ConfigFile -Raw | ConvertFrom-Json
+if (Test-Path -LiteralPath $ConfigFile) {
+    $cfg = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
 } else {
     $cfg = @{}
 }
@@ -473,12 +558,15 @@ $scpDest = $remoteTarget + ':' + $RemoteBinary
 $sshCommonArgs = @('-i', $KeyPath)
 $scpCommonArgs = @('-i', $KeyPath)
 if ($Yes) {
-    $sshCommonArgs += @('-o', 'BatchMode=yes', '-o', 'PasswordAuthentication=no')
-    $scpCommonArgs += @('-o', 'BatchMode=yes', '-o', 'PasswordAuthentication=no')
+    $sshCommonArgs += @('-o', 'BatchMode=yes', '-o', 'PasswordAuthentication=no', '-o', 'StrictHostKeyChecking=accept-new')
+    $scpCommonArgs += @('-o', 'BatchMode=yes', '-o', 'PasswordAuthentication=no', '-o', 'StrictHostKeyChecking=accept-new')
 }
 
 $scpArgs = @()
 $scpArgs += $scpCommonArgs
+# Use legacy SCP protocol (-O) to avoid "subsystem request failed" when
+# the Pi's SFTP subsystem is not enabled (Windows OpenSSH scp defaults to SFTP).
+$scpArgs += @('-O')
 $scpArgs += @($LocalBinary, $scpDest)
 
 $sudoPrefix = 'sudo -n'

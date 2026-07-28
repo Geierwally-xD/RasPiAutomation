@@ -8,18 +8,17 @@
 #include "TestProg.h"
 
 #include "timer.h"
-#include <wiringPiI2C.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <wiringPi.h>
 #include <math.h>
+#include "pigpio_adapter.h"
 
 
 void TP_Init(void)
 {
-	pinMode(TP_OUT_5, OUTPUT); // test output signal
-	pinMode(TP_IN_1,  INPUT);  // test input signal
-	pinMode(TP_IN_2,  INPUT);  // test input signal
+	RPI_SetMode(TP_OUT_5, RPI_MODE_OUTPUT); // test output signal
+	RPI_SetMode(TP_IN_1,  RPI_MODE_INPUT);  // test input signal
+	RPI_SetMode(TP_IN_2,  RPI_MODE_INPUT);  // test input signal
 }
 
 
@@ -36,8 +35,8 @@ void TP_Test (void)
 	FILE *write_ptr;
 	while(1)
 	{
-		signalState_1 = digitalRead(TP_IN_1);
-		signalState_2 = digitalRead(TP_IN_2);
+		signalState_1 = RPI_Read(TP_IN_1);
+		signalState_2 = RPI_Read(TP_IN_2);
 		switch(state)
 		{
 			case 0:
@@ -50,14 +49,14 @@ void TP_Test (void)
 				if(signalState_1 != signalState_2)
 				{
 					startMeasurement(&offsetTimer);
-					digitalWrite(TP_OUT_5, 1);
+					RPI_Write(TP_OUT_5, 1);
 					state = 2;
 				}
 			break;
 			case 2:
 				if((signalState_1 == 0)&&(signalState_2 == 0))
 				{
-					digitalWrite(TP_OUT_5, 0);
+					RPI_Write(TP_OUT_5, 0);
 					offset = getRelativeTickCount(&offsetTimer); // set measured signal time
 					if(maxOffset < offset)
 					{

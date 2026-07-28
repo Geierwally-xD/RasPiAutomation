@@ -7,29 +7,29 @@
 
 ==============================================================================*/
 #include <math.h>
-#include <wiringPiI2C.h>
 #include "PositionDirect.h"
 #include "timer.h"
+#include "pigpio_adapter.h"
 
    PositionSens PosDir_Gier;
    PositionSens PosDir_Nick;
-   int posDirDeviceGier = 0;
-   int posDirDeviceNick = 0;
+	int posDirDeviceGier = -1;
+	int posDirDeviceNick = -1;
 
    //init values and overall behaviors for AS5948B use
 	unsigned char PosDirect_init(void)
 	{
 		unsigned char retVal = POSDI_SUCCESS;
 
-		PosDir_Gier._sensorAddress = AS5048_ADDRESS + 1;                     // device I²C addresses
+		PosDir_Gier._sensorAddress = AS5048_ADDRESS + 1;                     // device Iï¿½C addresses
 		PosDir_Nick._sensorAddress = AS5048_ADDRESS;
 
-		posDirDeviceGier = wiringPiI2CSetup(PosDir_Gier._sensorAddress); //Initializes I2C with device Address
+		posDirDeviceGier = RPI_I2COpen(PosDir_Gier._sensorAddress);
 	    wait(10000);
-        posDirDeviceNick = wiringPiI2CSetup(PosDir_Nick._sensorAddress);
+        posDirDeviceNick = RPI_I2COpen(PosDir_Nick._sensorAddress);
         wait(10000);
 
-		if((posDirDeviceGier >0)&&(posDirDeviceNick >0))
+		if((posDirDeviceGier >= 0)&&(posDirDeviceNick >= 0))
 		{
 			PosDir_Gier._clockWise = 0;
 			PosDir_Gier._lastAngleRaw = 0.0;
@@ -47,6 +47,21 @@
 			retVal = POSDI_FAILLED; // sensor not detected
 		}
 		return (retVal);
+	}
+
+	void PosDirect_shutdown(void)
+	{
+		if (posDirDeviceGier >= 0)
+		{
+			RPI_I2CClose(posDirDeviceGier);
+			posDirDeviceGier = -1;
+		}
+
+		if (posDirDeviceNick >= 0)
+		{
+			RPI_I2CClose(posDirDeviceNick);
+			posDirDeviceNick = -1;
+		}
 	}
 
 
@@ -207,7 +222,7 @@
 	}
 
 	//Performs an exponential moving average on the angle.
-	//Works on Sine and Cosine of the angle to avoid issues 0°/360° discontinuity
+	//Works on Sine and Cosine of the angle to avoid issues 0ï¿½/360ï¿½ discontinuity
 	void PosDirect_updateMovingAvgExp(PositionSens* psensor)
 	{
 		//sine and cosine calculation on angles in radian
@@ -251,14 +266,21 @@
 	uint8_t PosDirect_readReg8(PositionSens* psensor, uint8_t address)
 	{
 		uint8_t readValue = 0;
-		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >0))
+		int readResult = -1;
+		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >= 0))
 		{
-			readValue = wiringPiI2CReadReg8(posDirDeviceGier, address);
+			readResult = RPI_I2CReadReg8(posDirDeviceGier, address);
 		}
-		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >0))
+		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >= 0))
 		{
-			readValue = wiringPiI2CReadReg8(posDirDeviceNick, address);
+			readResult = RPI_I2CReadReg8(posDirDeviceNick, address);
 		}
+
+		if (readResult < 0)
+		{
+			return 0;
+		}
+		readValue = (uint8_t)readResult;
 		return readValue;
 	}
 
@@ -266,21 +288,31 @@
 	{
 		//16 bit value got from 2 8bits registers (7..0 MSB + 5..0 LSB) => 14 bits value
 
-		uint8_t readArray[2];
+		uint8_t readArray[2] = {0u, 0u};
 		uint16_t readValue = 0;
+		int readResult0 = -1;
+		int readResult1 = -1;
 
-		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >0))
+		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >= 0))
 		{
-			readArray[0] = wiringPiI2CReadReg8(posDirDeviceGier, address);
+			readResult0 = RPI_I2CReadReg8(posDirDeviceGier, address);
 			wait(10000);
-			readArray[1] = wiringPiI2CReadReg8(posDirDeviceGier, address + 1);
+			readResult1 = RPI_I2CReadReg8(posDirDeviceGier, address + 1);
 		}
-		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >0))
+		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >= 0))
 		{
-			readArray[0] = wiringPiI2CReadReg8(posDirDeviceNick, address);
+			readResult0 = RPI_I2CReadReg8(posDirDeviceNick, address);
 			wait(10000);
-			readArray[1] = wiringPiI2CReadReg8(posDirDeviceNick, address + 1);
+			readResult1 = RPI_I2CReadReg8(posDirDeviceNick, address + 1);
 		}
+
+		if ((readResult0 < 0) || (readResult1 < 0))
+		{
+			return 0;
+		}
+
+		readArray[0] = (uint8_t)readResult0;
+		readArray[1] = (uint8_t)readResult1;
 
 		readValue = (((uint16_t) readArray[0]) << 6);
 		readValue += (readArray[1] & 0x3F);
@@ -295,15 +327,17 @@
 	unsigned char PosDirect_writeReg(PositionSens* psensor, uint8_t address, uint8_t value)
 	{
 		unsigned char retVal = POSDI_SUCCESS;
-		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >0))
+		int rc = -1;
+		if((psensor == &PosDir_Gier)&&(posDirDeviceGier >= 0))
 		{
-			wiringPiI2CWriteReg8 (posDirDeviceGier, address, value);
+			rc = RPI_I2CWriteReg8(posDirDeviceGier, address, value);
 		}
-		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >0))
+		else if((psensor == &PosDir_Nick)&&(posDirDeviceNick >= 0))
 		{
-			wiringPiI2CWriteReg8 (posDirDeviceNick, address, value);
+			rc = RPI_I2CWriteReg8(posDirDeviceNick, address, value);
 		}
-		else
+
+		if (rc < 0)
 		{
 			retVal = POSDI_FAILLED;
 		}

@@ -1,0 +1,14 @@
+{
+  "Host": "raspberrypi.local",
+  "User": "pi",
+  "SudoPassword": "",
+  "PreDebugCommands": [],
+  "CreateKeyIfMissing": true,
+  "InstallPublicKey": true,
+  "KeyPath": "$env:USERPROFILE\\.ssh\\id_ed25519",
+  "LocalBinary": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+  "RemoteBinary": "/home/pi/JokiAutomation/RasPiAutomation",
+  "ProgramArgs": [10, 2],
+  "RemoteGdbserver": "gdbserver",
+  "Port": 2345
+}

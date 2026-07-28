@@ -5,7 +5,6 @@
  Copyright:      Geierwally, 2021(c)
 
 ==============================================================================*/
-#include <wiringPi.h>
 #include <stdio.h>
 
 #include <signal.h>
@@ -24,9 +23,9 @@ systemtimer timeoutTimer;			// function timeout timer (3 seconds limit)
 unsigned char IR_init(void)
 {
 	unsigned char result = IR_SUCCESS;
-	pinMode(IR_OUT, OUTPUT); // IR output signal
-	pinMode(IR_IN,  INPUT);  // IR input signal
-	digitalWrite(IR_OUT, 0); // reset IR output
+	RPI_SetMode(IR_OUT, RPI_MODE_OUTPUT); // IR output signal
+	RPI_SetMode(IR_IN,  RPI_MODE_INPUT);  // IR input signal
+	RPI_Write(IR_OUT, 0); // reset IR output
 	for(int i = 0;i<NUM_SEQ;i++)
 	{
 		for(int j = 0; j< SEQ_SIZE; j++)
@@ -61,7 +60,7 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 				{
 					if((int) IR_sequences[seqID][i].signal == 0)
 					{
-						digitalWrite(IR_OUT, (int) IR_sequences[seqID][i].signal);
+						RPI_Write(IR_OUT, (int) IR_sequences[seqID][i].signal);
 						wait(IR_sequences[seqID][i].IR_Time);
 					}
 					else
@@ -74,7 +73,7 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 							if(isExpired(periodTimeHalf,&frequencyTimer)==1)
 							{
 								OnSignal ^=1;
-								digitalWrite(IR_OUT, OnSignal);
+								RPI_Write(IR_OUT, OnSignal);
 								startMeasurement(&frequencyTimer);
 							}
 						}
@@ -97,7 +96,7 @@ unsigned char IR_SequenceOut(unsigned char seqID)
 	{
 		result = IR_UNDEFINED;
 	}
-	digitalWrite(IR_OUT, 0);
+	RPI_Write(IR_OUT, 0);
 	return(result);
 }
 
@@ -119,7 +118,7 @@ unsigned char IR_SequenceIn(unsigned char seqID)
 
 		while(teachData == prevTeacheData) // wait for leading rising edge
 		{
-			teachData = digitalRead(IR_IN);
+			teachData = RPI_Read(IR_IN);
 		    if(isExpired(IR_SCAN_TIMEOUT,&timeoutTimer)==1) // loop timed out ?
 		    {
 		    	result = IR_TIMEOUT;
@@ -135,7 +134,7 @@ unsigned char IR_SequenceIn(unsigned char seqID)
 			{
 				while(1)
 				{
-					teachData = digitalRead(IR_IN);
+					teachData = RPI_Read(IR_IN);
 					if(teachData != prevTeacheData)
 					{
 						IR_sequences[seqID][i].IR_Time = getRelativeTickCount(&teachTimer); // set measured signal time
@@ -202,5 +201,5 @@ unsigned char IR_readDatFile(void)
 
 void IR_shutdown(void)
 {
-	digitalWrite(IR_OUT, 0); // reset IR output
+	RPI_Write(IR_OUT, 0); // reset IR output
 }

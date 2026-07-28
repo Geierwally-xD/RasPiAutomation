@@ -11,30 +11,13 @@
         "${workspaceFolder}/System_Raspberry",
         "${workspaceFolder}/TestProg",
         "${workspaceFolder}/Timer",
-        "${workspaceFolder}/../../ToolChains/SysGCC/GCC64RasPi4/gccArmCrossCompiler/sysroot-pi/usr/include/**",
-        "${workspaceFolder}/../../ToolChains/SysGCC/GCC64RasPi4/gccArmCrossCompiler/sysroot-pi/usr/local/include/**"
+        "${env:ToolChain}/SysGCC/GCC64RasPi4/gccArmCrossCompiler/sysroot-pi/usr/include/**",
+        "${env:ToolChain}/SysGCC/GCC64RasPi4/gccArmCrossCompiler/sysroot-pi/usr/local/include/**"
       ],
       "defines": [],
-      "compilerPath": "${workspaceFolder}/../../ToolChains/SysGCC/GCC64RasPi4/gccArmCrossCompiler/bin/aarch64-none-linux-gnu-gcc.exe",
+      "compilerPath": "${env:ToolChain}/SysGCC/GCC64RasPi4/gccArmCrossCompiler/bin/aarch64-none-linux-gnu-gcc.exe",
       "cStandard": "c11",
       "cppStandard": "c++17",
-      "intelliSenseMode": "gcc-arm64"
-    },
-    {
-      "name": "RasPiAutomation",
-      "includePath": [
-        "${workspaceFolder}/System_Raspberry",
-        "${workspaceFolder}/PositionControl",
-        "${workspaceFolder}/AudioControl",
-        "${workspaceFolder}/Command_Interpreter",
-        "${workspaceFolder}/Timer",
-        "${workspaceFolder}/IRcontrol",
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/../../ToolChains/SysGCC/GCC64RasPi4/gccArmCrossCompiler/**"
-      ],
-      "defines": [],
-      "compilerPath": "${workspaceFolder}/../../ToolChains/SysGCC/GCC64RasPi4/gccArmCrossCompiler/bin/aarch64-none-linux-gnu-gcc.exe",
-      "cStandard": "c11",
       "intelliSenseMode": "linux-gcc-arm64"
     }
   ],
