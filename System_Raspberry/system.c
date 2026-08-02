@@ -8,9 +8,31 @@
 #include <sched.h>
 #include <string.h>
 #include <fcntl.h>
+#include <ctype.h>
+#include "raspi_build_config.h"
 #include "system.h"
 
   struct sched_param sp;
+
+  int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize)
+  {
+    int written;
+
+    if((ipAddress == NULL) || (ipAddressSize == 0))
+    {
+        return -1;
+    }
+
+#ifndef RASPI_CONFIG_IP_ADDRESS
+#define RASPI_CONFIG_IP_ADDRESS "0.0.0.0"
+#endif
+    written = snprintf(ipAddress, ipAddressSize, "%s", RASPI_CONFIG_IP_ADDRESS);
+    if((written < 0) || ((size_t)written >= ipAddressSize))
+    {
+        return -1;
+    }
+    return 0;
+  }
 
   long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max)
   {

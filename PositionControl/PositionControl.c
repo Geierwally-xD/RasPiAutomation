@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
+#include "raspi_build_config.h"
 #include "PositionControl.h"
 #include "PositionDirect.h"
 #include "timer.h"
@@ -21,6 +23,10 @@ extern PositionSens PosDir_Nick;
 
 PosAngle_Data teachedPositions[22];
 PosAngle_Data angleData = {0.0,0.0,0.0,0.0,0.0,0.0}; // calculated nick gier and roll angles
+
+#ifndef RASPI_CONFIG_PTZ_CAM_ENABLED
+#define RASPI_CONFIG_PTZ_CAM_ENABLED 0
+#endif
 
 // initialize gyroscope, accelerometer and magnetometer
 unsigned char PC_Init(void)
@@ -70,6 +76,11 @@ unsigned char PC_Move(unsigned char ID)
 {
 	unsigned char retVal = PC_SUCCESS;
 	unsigned char moveDone = 0;
+
+	if(RASPI_CONFIG_PTZ_CAM_ENABLED != 0)
+	{
+		return(retVal);
+	}
 	unsigned char moveUp = 0;
 	unsigned char moveRight = 0;
 	unsigned char zoomState = AZ_TASK_INITIALIZE;

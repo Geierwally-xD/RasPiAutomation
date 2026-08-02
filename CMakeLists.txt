@@ -31,6 +31,46 @@ endif()
 file(GLOB SOURCES 
     "${CMAKE_SOURCE_DIR}/main.c"
 )
+
+# Build-time configuration from a network.cfg file if present; otherwise fall back to VS Code settings.
+set(NETWORK_CFG_PATH "${CMAKE_SOURCE_DIR}/../network.cfg")
+if(NOT EXISTS "${NETWORK_CFG_PATH}")
+    set(NETWORK_CFG_PATH "${CMAKE_SOURCE_DIR}/network.cfg")
+endif()
+
+set(RASPI_CONFIG_PTZ_CAM_ENABLED 0)
+set(RASPI_CONFIG_IP_ADDRESS "0.0.0.0")
+
+if(EXISTS "${NETWORK_CFG_PATH}")
+    file(READ "${NETWORK_CFG_PATH}" RASPI_NETWORK_CFG_CONTENT)
+
+    string(REGEX MATCH "^[ 	]*PTZ_CAM[ 	]*=[ 	]*([^#\r\n]+)" _ptz_match "${RASPI_NETWORK_CFG_CONTENT}")
+    if(_ptz_match)
+        string(STRIP "${CMAKE_MATCH_1}" _ptz_value)
+        string(TOLOWER "${_ptz_value}" _ptz_value_lower)
+        if(_ptz_value_lower STREQUAL "true" OR _ptz_value_lower STREQUAL "1" OR _ptz_value_lower STREQUAL "yes" OR _ptz_value_lower STREQUAL "on")
+            set(RASPI_CONFIG_PTZ_CAM_ENABLED 1)
+        endif()
+    endif()
+
+    foreach(_cfg_key IN ITEMS IP_ADDRESS IP IPADDR)
+        string(REGEX MATCH "^[ 	]*${_cfg_key}[ 	]*=[ 	]*([^#\r\n]+)" _ip_match "${RASPI_NETWORK_CFG_CONTENT}")
+        if(_ip_match)
+            string(STRIP "${CMAKE_MATCH_1}" RASPI_CONFIG_IP_ADDRESS)
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(RASPI_CONFIG_IP_ADDRESS STREQUAL "0.0.0.0")
+    set(RASPI_CONFIG_IP_ADDRESS "$ENV{RASPI_IP_ADDRESS}")
+endif()
+if(RASPI_CONFIG_IP_ADDRESS STREQUAL "")
+    set(RASPI_CONFIG_IP_ADDRESS "0.0.0.0")
+endif()
+
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated")
+file(WRITE "${CMAKE_BINARY_DIR}/generated/raspi_build_config.h" "#pragma once\n#ifndef RASPI_BUILD_CONFIG_H\n#define RASPI_BUILD_CONFIG_H\n\n#define RASPI_CONFIG_PTZ_CAM_ENABLED ${RASPI_CONFIG_PTZ_CAM_ENABLED}\n#define RASPI_CONFIG_IP_ADDRESS \"${RASPI_CONFIG_IP_ADDRESS}\"\n\n#endif\n")
 file(GLOB_RECURSE SOURCES_MODULES
     "System_Raspberry/*.c"
     "PositionControl/*.c"
@@ -65,6 +105,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE _GNU_SOURCE)
 
 # Include paths from Eclipse project files
 target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_BINARY_DIR}/generated"
     "${CMAKE_SOURCE_DIR}/System_Raspberry"
     "${CMAKE_SOURCE_DIR}/PositionControl"
     "${CMAKE_SOURCE_DIR}/AudioControl"

@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
 	//char isLittleEndian = p[0];
 
 	unsigned char result = RASPI_AUTOMATION_SUCCESS;
+	char configuredIpAddress[64] = {0};
 	if(argc == 3)
 	{
 		if (SYSTEM_Initialize() != 0)
@@ -150,6 +151,10 @@ int main(int argc, char *argv[])
 			return RASPI_AUTOMATION_CALL_FAILURE;
 		}
 		initSystemTimer();
+		if(SYSTEM_GetConfiguredIPAddress(configuredIpAddress, sizeof(configuredIpAddress)) == 0)
+		{
+			printf("Configured IP address: %s\n", configuredIpAddress);
+		}
 		ACinit();
 		result = CIexecuteCommand(argv);
 	}

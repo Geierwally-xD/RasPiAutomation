@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stddef.h>
 
 
 
@@ -24,6 +25,7 @@
 
 
 int SYSTEM_Initialize (void);
+int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize);
 void initTimer1(void);
 void alarmWakeup(int sig_num);
 extern long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max);

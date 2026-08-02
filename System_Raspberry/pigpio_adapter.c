@@ -339,6 +339,23 @@ int RPI_ServoPulse(int pin, unsigned pulseWidthMicros)
 		set_last_error("Unsupported legacy GPIO pin %d", pin);
 		return -1;
 	}
+	if (pigpioApi.gpioSetMode((unsigned)bcmPin, 2u) < 0)
+	{
+		set_last_error("gpioSetMode for servo pin %d failed", bcmPin);
+		return -1;
+	}
+	if (pulseWidthMicros == 0u)
+	{
+		return 0;
+	}
+	if (pulseWidthMicros < 500u)
+	{
+		pulseWidthMicros = 500u;
+	}
+	if (pulseWidthMicros > 2500u)
+	{
+		pulseWidthMicros = 2500u;
+	}
 	rc = pigpioApi.gpioServo((unsigned)bcmPin, pulseWidthMicros);
 	if (rc < 0)
 	{

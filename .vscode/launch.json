@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
       "args": ["10", "2"],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
         { "name": "HOME", "value": "${env:USERPROFILE}" }
@@ -62,7 +62,7 @@
       "request": "launch",
       "program": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
       "args": ["10", "2"],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
         { "name": "HOME", "value": "${env:USERPROFILE}" }
