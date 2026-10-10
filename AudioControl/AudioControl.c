@@ -12,11 +12,47 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/file.h>
+#include <sys/stat.h>
 #include <termios.h>
+#include <stdarg.h>
+#include <time.h>
 #include "AudioControl.h"
 #include "AudioCommands.h"
 #include "timer.h"
 #include "system.h"
+
+#define AC_LOG_FILE "/home/pi/JokiAutomation/log/AudioControl.log"
+#define AC_LOG_MAX_BYTES (5 * 1024 * 1024)
+
+static void AC_RotateLogIfNeeded(const char *logPath)
+{
+	struct stat st;
+	char log1[256];
+	char log2[256];
+
+	if (logPath == NULL)
+	{
+		return;
+	}
+
+	if (stat(logPath, &st) != 0)
+	{
+		return;
+	}
+
+	if (st.st_size < AC_LOG_MAX_BYTES)
+	{
+		return;
+	}
+
+	snprintf(log1, sizeof(log1), "%s.1", logPath);
+	snprintf(log2, sizeof(log2), "%s.2", logPath);
+
+	remove(log2);
+	rename(log1, log2);
+	rename(logPath, log1);
+}
 
 int uart0_filestream = -1;
 int streamlength = 0;
@@ -28,6 +64,37 @@ int volumeSteps[4] = {0,0,0,0};    // volume steps to fade up/down
 
 
 AC_Data aC_Data;
+
+void AC_Log(const char *fmt, ...)
+{
+	FILE *fp;
+	va_list args;
+	time_t now;
+	struct tm tm_info;
+	char timebuf[32];
+
+	AC_RotateLogIfNeeded(AC_LOG_FILE);
+
+	fp = fopen(AC_LOG_FILE, "a");
+	if (fp == NULL)
+	{
+		return;
+	}
+
+	time(&now);
+	if (localtime_r(&now, &tm_info) != NULL)
+	{
+		strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", &tm_info);
+		fprintf(fp, "[%s] ", timebuf);
+	}
+
+	va_start(args, fmt);
+	vfprintf(fp, fmt, args);
+	va_end(args);
+
+	fprintf(fp, "\n");
+	fclose(fp);
+}
 
 // write active audio channel into datfile
 unsigned char AC_writeDatFile(void)
@@ -99,6 +166,13 @@ unsigned char AC_open(void)
 		}
 		else
 		{
+			if (flock(uart0_filestream, LOCK_EX | LOCK_NB) != 0)
+			{
+				close(uart0_filestream);
+				uart0_filestream = -1;
+				return AC_COM_FAILED;
+			}
+
 			// configured based on https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
 			struct termios options;
 			tcgetattr(uart0_filestream, &options);
@@ -120,7 +194,7 @@ unsigned char AC_write(char* buffer, int length)
 {
 	unsigned char result = AC_SUCCESS;
     streamlength = write(uart0_filestream,buffer, length); //write buffer to COM Port
-    printf("write  %s \n",buffer); //rvtest
+	AC_Log("AC_write bytes=%d payload=%s", streamlength, buffer);
     if(streamlength < 0)
 	{
        result = AC_TX_FAILED;
@@ -147,11 +221,12 @@ unsigned char AC_read(char* buffer, int length)
 		}
 		if(isExpired(1000000,&timeoutTimer)== 1)
 		{
+			AC_Log("AC_read timeout: pid=%d errno=%d streamlength=%d", getpid(), errno, streamlength);
 			result |= AC_RX_TIMEOUT;
 			break;
 		}
 	}
-    printf("read   %s \n",buffer); //rvtest
+	AC_Log("AC_read bytes=%d payload=%s", streamlength, buffer);
 	if(streamlength < 0)
 	{
 		result |= AC_RX_FAILED;
@@ -173,7 +248,12 @@ unsigned char AC_Teach(int index)
 	tempDat = (unsigned char)(index & 0x0f);                            // audio channel 1
 	aC_Data.audioProfiles[aC_Data.activeAudioProfile][0] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));
 	result = AC_writeDatFile(); // write teach data into binary file
-	printf("Teachdata = 1= %d 2= %d 3= %d 4= %d\n",aC_Data.audioProfiles[aC_Data.activeAudioProfile][0],aC_Data.audioProfiles[aC_Data.activeAudioProfile][1],aC_Data.audioProfiles[aC_Data.activeAudioProfile][2],aC_Data.audioProfiles[aC_Data.activeAudioProfile][3]);//rvtest
+	AC_Log("TEACH_DATA profile=%u values=%d,%d,%d,%d",
+		aC_Data.activeAudioProfile,
+		aC_Data.audioProfiles[aC_Data.activeAudioProfile][0],
+		aC_Data.audioProfiles[aC_Data.activeAudioProfile][1],
+		aC_Data.audioProfiles[aC_Data.activeAudioProfile][2],
+		aC_Data.audioProfiles[aC_Data.activeAudioProfile][3]);
 	result |= AC_open(); // open COM Port
 	result |= AC_Profile(aC_Data.activeAudioProfile); // execute the teached profile
 	return(result);
@@ -205,7 +285,12 @@ unsigned char AC_Request(unsigned char index)
 		{
 			volumeRequest[3] = 0;
 		}
-		printf("Requested Profile data from index %d : 1= %d 2= %d 3= %d 4= %d\n",index,aC_Data.audioProfiles[index][0],aC_Data.audioProfiles[index][1],aC_Data.audioProfiles[index][2],aC_Data.audioProfiles[index][3]);//rvtest
+		AC_Log("REQUESTED_PROFILE index=%u values=%d,%d,%d,%d",
+			index,
+			aC_Data.audioProfiles[index][0],
+			aC_Data.audioProfiles[index][1],
+			aC_Data.audioProfiles[index][2],
+			aC_Data.audioProfiles[index][3]);
 	}
 	else
 	{
@@ -229,18 +314,25 @@ unsigned char AC_GetVolume(void)
 	wait(30000);
     result |=  AC_read(&volString[0],9);
 
-    if(result != AC_SUCCESS) // timeout occured, send reset and try once more
+	if(result != AC_SUCCESS) // timeout occurred, flush and try once more without reset
     {
-    	commandString = &RESET[0];    // reset audiomix
-    	commandlength = sizeof(RESET);
-    	result =  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
-    	wait(30000);
+		AC_Log("AC_GetVolume timeout: pid=%d channel=1 errno=%d", getpid(), errno);
+		AC_Log("AC_GetVolume retry: pid=%d channel=1 first_result=%u", getpid(), result);
+		tcflush(uart0_filestream, TCIFLUSH);
+		wait(30000);
+
+		result = AC_SUCCESS;
     	// read audiomix channel 1 volume
     	commandString = &VOL1[0];    // get volume channel 1
     	commandlength = sizeof(VOL1);
     	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
     	wait(30000);
         result |=  AC_read(&volString[0],9);
+
+		if(result != AC_SUCCESS)
+		{
+			return result;
+		}
     }
     volString[8] = 0;
     volumeState[0] = atoi(&volString[6]);
@@ -248,43 +340,112 @@ unsigned char AC_GetVolume(void)
     {
       volumeState[0] = 0;
     }
+	AC_Log("AC_GetVolume CH1=%d", volumeState[0]);
 	// read audiomix channel 2 volume
 	commandString = &VOL2[0];    // get volume channel 2
 	commandlength = sizeof(VOL2);
 	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
-    result |=  AC_read(&volString[0],9);
-    volString[8] = 0;
-    volumeState[1] = atoi(&volString[6]);
-    if((volumeState[1] > 63)||(volumeState[1] < 0)) // range check
-    {
-      volumeState[1] = 0;
-    }
+	result |=  AC_read(&volString[0],9);
+
+	if(result != AC_SUCCESS)
+	{
+		AC_Log("AC_GetVolume timeout: pid=%d channel=2 errno=%d", getpid(), errno);
+		AC_Log("AC_GetVolume retry: pid=%d channel=2 first_result=%u", getpid(), result);
+		tcflush(uart0_filestream, TCIFLUSH);
+		wait(30000);
+
+		result = AC_SUCCESS;
+		commandString = &VOL2[0];
+		commandlength = sizeof(VOL2);
+		result |=  AC_write(&commandString[0],commandlength);
+		wait(30000);
+		result |=  AC_read(&volString[0],9);
+
+		if(result != AC_SUCCESS)
+		{
+			return result;
+		}
+	}
+	volString[8] = 0;
+	volumeState[1] = atoi(&volString[6]);
+	if((volumeState[1] > 63)||(volumeState[1] < 0)) // range check
+	{
+	  volumeState[1] = 0;
+	}
+	AC_Log("AC_GetVolume CH2=%d", volumeState[1]);
 	// read audiomix channel 3 volume
 	commandString = &VOL3[0];    // get volume channel 3
 	commandlength = sizeof(VOL3);
 	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
-    result |=  AC_read(&volString[0],9);
-    volString[8] = 0;
-    volumeState[2] = atoi(&volString[6]);
-    if((volumeState[2] > 63)||(volumeState[2] < 0)) // range check
-    {
-      volumeState[2] = 0;
-    }
+	result |=  AC_read(&volString[0],9);
+
+	if(result != AC_SUCCESS)
+	{
+		AC_Log("AC_GetVolume timeout: pid=%d channel=3 errno=%d", getpid(), errno);
+		AC_Log("AC_GetVolume retry: pid=%d channel=3 first_result=%u", getpid(), result);
+		tcflush(uart0_filestream, TCIFLUSH);
+		wait(30000);
+
+		result = AC_SUCCESS;
+		commandString = &VOL3[0];
+		commandlength = sizeof(VOL3);
+		result |=  AC_write(&commandString[0],commandlength);
+		wait(30000);
+		result |=  AC_read(&volString[0],9);
+
+		if(result != AC_SUCCESS)
+		{
+			return result;
+		}
+	}
+	volString[8] = 0;
+	volumeState[2] = atoi(&volString[6]);
+	if((volumeState[2] > 63)||(volumeState[2] < 0)) // range check
+	{
+	  volumeState[2] = 0;
+	}
+	AC_Log("AC_GetVolume CH3=%d", volumeState[2]);
 	// read audiomix channel 4 volume
 	commandString = &VOL4[0];    // get volume channel 4
 	commandlength = sizeof(VOL4);
 	result |=  AC_write(&commandString[0],commandlength);  // send command sequence to Audiomix
 	wait(30000);
-    result |=  AC_read(&volString[0],9);
-    volString[8] = 0;
-    volumeState[3] = atoi(&volString[6]);
-    if((volumeState[3] > 63)||(volumeState[3] < 0)) // range check
-    {
-      volumeState[3] = 0;
-    }
-	printf("GetVolume = 1= %d 2= %d 3= %d 4= %d\n",volumeState[0],volumeState[1],volumeState[2],volumeState[3]);//rvtest
+	result |=  AC_read(&volString[0],9);
+
+	if(result != AC_SUCCESS)
+	{
+		AC_Log("AC_GetVolume timeout: pid=%d channel=4 errno=%d", getpid(), errno);
+		AC_Log("AC_GetVolume retry: pid=%d channel=4 first_result=%u", getpid(), result);
+		tcflush(uart0_filestream, TCIFLUSH);
+		wait(30000);
+
+		result = AC_SUCCESS;
+		commandString = &VOL4[0];
+		commandlength = sizeof(VOL4);
+		result |=  AC_write(&commandString[0],commandlength);
+		wait(30000);
+		result |=  AC_read(&volString[0],9);
+
+		if(result != AC_SUCCESS)
+		{
+			return result;
+		}
+	}
+	volString[8] = 0;
+	volumeState[3] = atoi(&volString[6]);
+	if((volumeState[3] > 63)||(volumeState[3] < 0)) // range check
+	{
+	  volumeState[3] = 0;
+	}
+	AC_Log("AC_GetVolume CH4=%d", volumeState[3]);
+	AC_Log("GET_VOLUME profile=%u state=%d,%d,%d,%d",
+		aC_Data.activeAudioProfile,
+		volumeState[0],
+		volumeState[1],
+		volumeState[2],
+		volumeState[3]);
 	return(result);
 }
 
@@ -403,6 +564,7 @@ unsigned char AC_Control(void)
 unsigned char AC_Profile(unsigned char index)
 {
 	unsigned char result = AC_SUCCESS;
+	AC_Log("AC_Profile start: pid=%d profile=%u", getpid(), index);
 	//if(index == 0)
 	//{
 	//	result |=  AC_write(&RESET[0],sizeof(RESET));  // send reset command to Audiomix
@@ -429,6 +591,7 @@ unsigned char AC_Profile(unsigned char index)
 	{
 		uart0_filestream = close(uart0_filestream); // close COM Port
 	}
+	AC_Log("AC_Profile end: pid=%d profile=%u result=%u", getpid(), index, result);
 
 	return(result);
 }
@@ -470,6 +633,7 @@ unsigned char AC_Execute(unsigned char index)
 			return(AC_Profile(channel));      // execute audio profile
 		break;
 		case AUDIO_RESET:
+			AC_Log("AUDIO RESET: pid=%d caller=AC_Execute", getpid());
 			return(AC_write(&RESET[0],sizeof(RESET)));  // send reset command to Audiomix
 		break;
 		default:

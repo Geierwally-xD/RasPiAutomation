@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "ComInt.h"
 #include "timer.h"
 #include "IRcontrol.h"
@@ -337,6 +338,7 @@ unsigned char CIexecuteCommand(char *argv[])
 	unsigned char result = CI_SUCCESS;
 	int command = atoi(&argv[1][0]);
 	int index = atoi(&argv[2][0]);
+	AC_Log("COMMAND pid=%d command=%d index=%d", getpid(), command, index);
 	switch(command)
 	{
 		case CI_IR: // IR control command

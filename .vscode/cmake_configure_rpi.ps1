@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory = $false)][string]$WorkspaceFolder,
     [Parameter(Mandatory = $false)][string]$BuildDir,
     [Parameter(Mandatory = $false)][string]$ToolchainsRoot,
+    [Parameter(Mandatory = $false)][string]$BuildType,
     [Parameter(Mandatory = $false)][switch]$ForceFresh
 )
 
@@ -95,6 +96,15 @@ if (-not $WorkspaceFolder) {
     $WorkspaceFolder = Resolve-FullPath -Path $WorkspaceFolder
 }
 
+if (-not $BuildType) {
+    $BuildType = 'Debug'
+}
+
+$BuildType = $BuildType.Trim()
+if ($BuildType -ne 'Debug' -and $BuildType -ne 'Release') {
+    throw "Unsupported BuildType '$BuildType'. Allowed values: Debug, Release."
+}
+
 if (-not $BuildDir) {
     $BuildDir = Join-Path $WorkspaceFolder 'build-rpi'
 } else {
@@ -143,6 +153,7 @@ $cxx = Join-Path $crossBin 'aarch64-none-linux-gnu-g++.exe'
 
 Write-Host "WorkspaceFolder : $WorkspaceFolder" -ForegroundColor Cyan
 Write-Host "BuildDir        : $BuildDir" -ForegroundColor Cyan
+Write-Host "BuildType       : $BuildType" -ForegroundColor Cyan
 Write-Host "ToolchainsRoot  : $ToolchainsRoot" -ForegroundColor Cyan
 
 foreach ($p in @($ninjaExe, $cmakeToolchainFile, $cc, $cxx)) {
@@ -208,6 +219,7 @@ if ($needExplicitArgs) {
         "-DTOOLCHAIN_BIN_DIR=$crossBin",
         "-DCMAKE_C_COMPILER=$cc",
         "-DCMAKE_CXX_COMPILER=$cxx",
+        "-DCMAKE_BUILD_TYPE=$BuildType",
         '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
     )
 }

@@ -619,13 +619,16 @@ if ($PreDebugCommands) {
 $preChain = ($preParts -join '; ')
 $killLine = "command -v fuser >/dev/null 2>&1 && fuser -k $Port/tcp >/dev/null 2>&1 || true"
 $killCmd = ConvertTo-PosixSingleQuotedString -Value $killLine
+$remoteLogMaxBytes = 5242880
+$rotateLine = "if [ -f /tmp/gdbserver-$Port.log ]; then if [ `$(stat -c%s /tmp/gdbserver-$Port.log 2>/dev/null || echo 0) -ge $remoteLogMaxBytes ]; then rm -f /tmp/gdbserver-$Port.log.2; mv -f /tmp/gdbserver-$Port.log.1 /tmp/gdbserver-$Port.log.2 2>/dev/null || true; mv -f /tmp/gdbserver-$Port.log /tmp/gdbserver-$Port.log.1; fi; fi"
+$rotateCmd = ConvertTo-PosixSingleQuotedString -Value $rotateLine
 
 # Start gdbserver as root (sudo). This avoids /dev/mem permission issues for hardware PWM.
 $startPrefix = $sudoPrefix
 if ($preChain) {
-    $remoteCmd = "set -e; $preChain; $sudoPrefix sh -c $killCmd; $sudoPrefix rm -f /tmp/gdbserver-$Port.log 2>/dev/null || true; $startPrefix nohup $remoteGdbserverInvocation >/tmp/gdbserver-$Port.log 2>&1 < /dev/null &"
+    $remoteCmd = "set -e; $preChain; $sudoPrefix sh -c $killCmd; $sudoPrefix sh -c $rotateCmd; $startPrefix nohup $remoteGdbserverInvocation >/tmp/gdbserver-$Port.log 2>&1 < /dev/null &"
 } else {
-    $remoteCmd = "set -e; $sudoPrefix sh -c $killCmd; $sudoPrefix rm -f /tmp/gdbserver-$Port.log 2>/dev/null || true; $startPrefix nohup $remoteGdbserverInvocation >/tmp/gdbserver-$Port.log 2>&1 < /dev/null &"
+    $remoteCmd = "set -e; $sudoPrefix sh -c $killCmd; $sudoPrefix sh -c $rotateCmd; $startPrefix nohup $remoteGdbserverInvocation >/tmp/gdbserver-$Port.log 2>&1 < /dev/null &"
 }
 
 $remoteDirQ = ConvertTo-PosixSingleQuotedString -Value $remoteDir

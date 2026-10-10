@@ -5,7 +5,7 @@
       "name": "Debug RasPiAutomation",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+      "program": "${workspaceFolder}\\build-rpi-debug\\RasPiAutomation",
       "args": ["10", "2"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -49,7 +49,7 @@
           "ignoreFailures": true
         }
       ],
-      "preLaunchTask": "4 ▸ Build Debug + Start GDBServer",
+      "preLaunchTask": "Debug RasPi (Remote)",
       "logging": {
         "engineLogging": true,
         "trace": true,
@@ -60,7 +60,7 @@
       "name": "Attach to GDBServer (no build)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+      "program": "${workspaceFolder}\\build-rpi-debug\\RasPiAutomation",
       "args": ["10", "2"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

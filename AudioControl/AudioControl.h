@@ -46,6 +46,7 @@
     extern unsigned char AC_Profile(unsigned char index);
     extern unsigned char AC_Teach(int index);
     extern unsigned char AC_writeDatFile(void);
+    extern void AC_Log(const char *fmt, ...);
 
     typedef struct
 	{

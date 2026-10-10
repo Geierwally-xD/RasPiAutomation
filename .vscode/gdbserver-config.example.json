@@ -6,7 +6,7 @@
   "CreateKeyIfMissing": true,
   "InstallPublicKey": true,
   "KeyPath": "$env:USERPROFILE\\.ssh\\id_ed25519",
-  "LocalBinary": "${workspaceFolder}\\build-rpi\\RasPiAutomation",
+  "LocalBinary": "${workspaceFolder}\\build-rpi-debug\\RasPiAutomation",
   "RemoteBinary": "/home/pi/JokiAutomation/RasPiAutomation",
   "ProgramArgs": [10, 2],
   "RemoteGdbserver": "gdbserver",

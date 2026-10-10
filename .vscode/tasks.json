@@ -1,9 +1,9 @@
 {
   "version": "2.0.0",
   "tasks": [
-    // ── 1. CMake Configure (RasPi) ──────────────────────────────────────────
+    // ── Configure ───────────────────────────────────────────────────────────
     {
-      "label": "1 ▸ CMake Configure (RasPi)",
+      "label": "Configure (RasPi Debug)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -15,7 +15,10 @@
         "-WorkspaceFolder",
         "${workspaceFolder}",
         "-BuildDir",
-        "${workspaceFolder}\\build-rpi"
+        "${workspaceFolder}\\build-rpi-debug",
+        "-BuildType",
+        "Debug",
+        "-ForceFresh"
       ],
       "group": "build",
       "problemMatcher": ["$gcc"],
@@ -25,14 +28,44 @@
       }
     },
 
-    // ── 2. CMake Build (RasPi) ──────────────────────────────────────────────
     {
-      "label": "2 ▸ CMake Build (RasPi)",
+      "label": "Configure (RasPi Release)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\cmake_configure_rpi.ps1",
+        "-WorkspaceFolder",
+        "${workspaceFolder}",
+        "-BuildDir",
+        "${workspaceFolder}\\build-rpi-release",
+        "-BuildType",
+        "Release",
+        "-ForceFresh"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ── Build ───────────────────────────────────────────────────────────────
+    {
+      "label": "Build Debug (RasPi)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Configure (RasPi Debug)"
+      ],
       "type": "shell",
       "command": "cmake",
       "args": [
         "--build",
-        "${workspaceFolder}/build-rpi"
+        "${workspaceFolder}/build-rpi-debug"
       ],
       "group": {
         "kind": "build",
@@ -45,16 +78,58 @@
       }
     },
 
-    // ── 3. CMake Clean (RasPi) ──────────────────────────────────────────────
     {
-      "label": "3 ▸ CMake Clean (RasPi)",
+      "label": "Build Release (RasPi)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Configure (RasPi Release)"
+      ],
       "type": "shell",
       "command": "cmake",
       "args": [
         "--build",
-        "${workspaceFolder}/build-rpi",
-        "--target",
-        "clean"
+        "${workspaceFolder}/build-rpi-release"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    {
+      "label": "Update RasPi (Release)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Build Release (RasPi)",
+        "Deploy Release Binary (RasPi)"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Deploy Release Binary (RasPi)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\deploy_raspi_binary.ps1",
+        "-HostName",
+        "${config:raspi.host}",
+        "-UserName",
+        "${config:raspi.user}",
+        "-KeyPath",
+        "${config:raspi.keyPath}",
+        "-LocalBinary",
+        "${workspaceFolder}\\build-rpi-release\\RasPiAutomation",
+        "-RemoteBinary",
+        "${config:raspi.remoteBinary}",
+        "-Yes"
       ],
       "problemMatcher": [],
       "presentation": {
@@ -63,21 +138,40 @@
       }
     },
 
-    // ── 4. Build Debug + Start GDBServer ────────────────────────────────────
+    // ── Clean ───────────────────────────────────────────────────────────────
     {
-      "label": "4 ▸ Build Debug + Start GDBServer",
+      "label": "Clean (RasPi)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\cmake_clean_rpi.ps1",
+        "-WorkspaceFolder",
+        "${workspaceFolder}"
+      ],
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": []
+    },
+
+    // ── Debug Helper ────────────────────────────────────────────────────────
+    {
+      "label": "Debug RasPi (Remote)",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "2 ▸ CMake Build (RasPi)",
-        "5 ▸ Start GDBServer"
+        "Build Debug (RasPi)",
+        "Start GDBServer (Debug Binary)"
       ],
       "group": "build",
       "problemMatcher": []
     },
 
-    // ── 5. Start GDBServer ──────────────────────────────────────────────────
     {
-      "label": "5 ▸ Start GDBServer",
+      "label": "Start GDBServer (Debug Binary)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -86,6 +180,8 @@
         "Bypass",
         "-File",
         "${workspaceFolder}/.vscode/start_gdbserver.ps1",
+        "-LocalBinary",
+        "${workspaceFolder}\\build-rpi-debug\\RasPiAutomation",
         "-Yes"
       ],
       "isBackground": true,
@@ -107,9 +203,9 @@
       }
     },
 
-    // ── 6. RasPi: Diagnose glibc/pigpio ────────────────────────────────────
+    // ── Utilities ───────────────────────────────────────────────────────────
     {
-      "label": "6 ▸ RasPi: Diagnose glibc/pigpio",
+      "label": "RasPi: Diagnose glibc/pigpio",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -130,9 +226,8 @@
       }
     },
 
-    // ── 7. RasPi: Sync sysroot (optional) ───────────────────────────────────
     {
-      "label": "7 ▸ RasPi: Sync sysroot (optional)",
+      "label": "RasPi: Sync sysroot (optional)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -153,9 +248,8 @@
       }
     },
 
-    // ── 8. RasPi: Enable /dev/mem (udev) ────────────────────────────────────
     {
-      "label": "8 ▸ RasPi: Enable /dev/mem (udev)",
+      "label": "RasPi: Enable /dev/mem (udev)",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -180,9 +274,8 @@
       }
     },
 
-    // ── 9. Set ToolChain Environment Variable ───────────────────────────────
     {
-      "label": "9 ▸ Set ToolChain Environment Variable",
+      "label": "Set ToolChain Environment Variable",
       "type": "shell",
       "command": "${workspaceFolder}/SetToolChain.bat",
       "problemMatcher": [],
