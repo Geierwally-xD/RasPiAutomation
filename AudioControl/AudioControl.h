@@ -18,6 +18,9 @@
 	#define AC_READ_FAILED 36 // AC read data file failed
 	#define AC_OUT_OF_RANGE 37 // AC data out of range
     #define AC_RX_TIMEOUT 38   // AC receive data from Audio Mix timed out
+    #define AC_INVALID_RESPONSE 39 // AC volume response is invalid
+    #define AC_PROFILE_VERIFY_FAILED 40 // Mixer did not reach the requested profile
+    #define AC_PROFILE_MAX_ATTEMPTS 2
 
     #define AC_SINGLE_SEQUENCE 0 // execute single command
     #define AC_INIT_SEQUENCE 1  // execute initialization sequence (Reset, Set Active, Set Volume)
@@ -39,7 +42,8 @@
 
     extern unsigned char AC_init(void);
     extern unsigned char AC_write(char* buffer, int length); // prototype write to COM Port
-    extern unsigned char AC_read(char* buffer, int  length);  // prototype read from COM Port
+    // Reads a parenthesized response through ')' or up to length bytes; timeout with data is accepted.
+    extern unsigned char AC_read(char* buffer, int  length);
     extern unsigned char AC_Execute(unsigned char index);    // execute command
     extern unsigned char AC_GetVersion (void);
     extern unsigned char AC_Test (void);

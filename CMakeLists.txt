@@ -4,6 +4,19 @@ project(RasPiAutomation C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+option(AC_BUILD_HARDWARE_FREE_TESTS "Build only hardware-free AudioControl tests" OFF)
+if(AC_BUILD_HARDWARE_FREE_TESTS)
+    enable_testing()
+    add_executable(audio_control_validation_test
+        tests/audio_control_validation_test.c
+        AudioControl/AudioControlValidation.c
+        AudioControl/AudioControlWrite.c
+    )
+    target_include_directories(audio_control_validation_test PRIVATE AudioControl)
+    add_test(NAME audio_control_validation_test COMMAND audio_control_validation_test)
+    return()
+endif()
+
 # Cross builds: never embed host paths (e.g. Windows drive paths) as RPATH into the target ELF.
 if(CMAKE_CROSSCOMPILING)
     set(CMAKE_SKIP_RPATH TRUE)
