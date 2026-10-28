@@ -1,0 +1,7 @@
+{
+  "projectName": "JoKiAutomation",
+  "repositoryPath": "../../JokiAutomation",
+  "outputDirectory": "../Docu/CodeDiff/CSharp",
+  "generatedSuffix": true,
+  "extensions": [".cs"]
+}

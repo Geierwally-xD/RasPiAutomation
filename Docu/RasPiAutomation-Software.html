@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Technische Einstiegsdokumentation zu Komponenten, Signalwegen, Hardware und Betrieb von RasPiAutomation.">
+  <title>RasPiAutomation | Software &amp; Signalwege</title>
+  <style>
+    :root { --paper:#f7f9f8; --ink:#182c2b; --muted:#506460; --line:#d4dfdb; --green:#096d57; --teal:#dceee7; --red:#a63d44; --gold:#e7b94e; --code:#152626; --sidebar:258px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:28px; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:"Segoe UI",sans-serif; line-height:1.7; font-size:16px; letter-spacing:0; }
+    a { color:var(--green); text-underline-offset:3px; overflow-wrap:anywhere; }
+    a:hover { color:var(--red); }
+    a:focus-visible, summary:focus-visible { outline:3px solid var(--gold); outline-offset:4px; }
+    .sidebar { position:fixed; inset:0 auto 0 0; width:var(--sidebar); padding:30px 24px; border-right:1px solid var(--line); overflow-y:auto; background:#edf3f0; }
+    .brand { font-family:Georgia,serif; font-size:24px; line-height:1.15; color:var(--ink); text-decoration:none; font-weight:bold; }
+    .sidebar .edition { color:var(--muted); font-size:12px; margin:12px 0 26px; }
+    nav a { display:block; border-left:2px solid transparent; padding:7px 0 7px 12px; text-decoration:none; color:#3d5350; font-size:14px; }
+    nav a:hover, nav a[aria-current="location"] { color:var(--green); border-color:var(--green); background:#e0ebe5; }
+    nav .group { margin-top:17px; margin-bottom:5px; font-weight:700; color:var(--ink); font-size:11px; text-transform:uppercase; }
+    main { margin-left:var(--sidebar); min-width:0; }
+    .content { max-width:1110px; padding:0 52px; margin:auto; }
+    .masthead { padding:40px 0 28px; border-bottom:1px solid var(--line); background:linear-gradient(115deg,#e2eee7,#f2f6f3 65%,#e6efee); }
+    .eyebrow { font-size:12px; text-transform:uppercase; font-weight:700; color:var(--green); margin:0 0 8px; }
+    h1,h2,h3,h4 { letter-spacing:0; line-height:1.2; }
+    h1 { font-family:Georgia,serif; font-size:46px; margin:8px 0 16px; }
+    .lead { max-width:750px; font-size:19px; color:#344c47; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px 24px; color:var(--muted); font-size:13px; padding-top:14px; }
+    section { padding:42px 0; border-bottom:1px solid var(--line); }
+    h2 { font-family:Georgia,serif; font-size:30px; margin:0 0 22px; }
+    h2 .num { display:block; color:var(--green); font:700 12px "Segoe UI",sans-serif; margin-bottom:8px; }
+    h3 { font-size:21px; margin:30px 0 12px; }
+    h4 { font-size:17px; margin:24px 0 8px; }
+    p { margin:10px 0 16px; }
+    ul,ol { padding-left:24px; }
+    li { padding-left:3px; margin:6px 0; }
+    .note { border-left:4px solid var(--green); background:#eaf2ed; padding:16px 20px; margin:22px 0; }
+    .warning { border-color:var(--red); background:#f6eeec; }
+    .note p:last-child { margin-bottom:0; }
+    .overview { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:30px; align-items:start; }
+    figure { margin:20px 0; min-width:0; }
+    figure img { display:block; width:100%; height:auto; border:1px solid var(--line); }
+    figcaption { margin-top:8px; color:var(--muted); font-size:13px; }
+    .flow { background:#eaf1ed; border-top:3px solid var(--green); padding:20px; margin:22px 0; }
+    .flow-line { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; }
+    .node { flex:1 1 130px; padding:14px; background:#fff; border:1px solid #c9d9d1; border-radius:4px; min-width:0; }
+    .node strong { display:block; font-size:14px; }
+    .node small { display:block; color:var(--muted); font-size:12px; }
+    .arrow { display:flex; align-items:center; color:var(--green); padding:4px; font-size:22px; }
+    .branches { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:14px; }
+    .branch { border-left:3px solid #6a9a84; background:#fff; padding:14px; }
+    .branch strong { display:block; }
+    .branch p { font-size:14px; margin:5px 0; }
+    .table-wrap { overflow-x:auto; margin:18px 0; border:1px solid var(--line); }
+    table { width:100%; border-collapse:collapse; font-size:14px; text-align:left; }
+    th { background:#e6eee9; color:#26463e; font-size:12px; }
+    th,td { vertical-align:top; padding:12px 14px; border-bottom:1px solid var(--line); }
+    tr:last-child td { border-bottom:0; }
+    td:first-child { font-weight:600; }
+    code { font-family:Consolas,"Liberation Mono",monospace; font-size:.88em; background:#e4ece7; padding:2px 4px; border-radius:3px; overflow-wrap:anywhere; }
+    .snippet { margin:22px 0; border-radius:5px; overflow:hidden; background:var(--code); color:#e4eeea; }
+    .snippet figcaption { margin:0; padding:10px 17px; background:#243a37; color:#c3d4cc; display:flex; flex-wrap:wrap; gap:4px 16px; justify-content:space-between; font-size:12px; }
+    .snippet figcaption a { color:#9fe1bf; }
+    pre { margin:0; padding:20px; overflow:auto; line-height:1.65; tab-size:4; font-size:13px; white-space:pre; }
+    pre code { background:none; padding:0; font-size:inherit; color:inherit; overflow-wrap:normal; }
+    .tok-comment { color:#a3b8ae; font-style:italic; }
+    .tok-string { color:#b8e78d; }
+    .tok-keyword { color:#8acbfc; }
+    .tok-number { color:#f3ca7a; }
+    .tok-function { color:#80dfca; }
+    .tok-constant { color:#e4b8f0; }
+    .split { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:26px; }
+    details { border-top:1px solid var(--line); padding:15px 0; }
+    summary { font-weight:600; cursor:pointer; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { border-bottom:1px solid var(--line); padding:12px 0; }
+    .checklist b { color:var(--green); margin-right:9px; }
+    footer { margin:24px 0 42px; font-size:13px; color:var(--muted); }
+    @media (min-width:1550px) { .content { max-width:1240px; } }
+    @media (max-width:1100px) { :root { --sidebar:220px; } .sidebar { padding:24px 17px; } .content { padding:0 30px; } .overview { grid-template-columns:1fr; } .overview figure { max-width:550px; } .branches { grid-template-columns:1fr; } }
+    @media (max-width:760px) { html { scroll-padding-top:12px; } .sidebar { position:static; width:100%; padding:20px; border-right:0; border-bottom:1px solid var(--line); } .sidebar .edition { margin:8px 0 12px; } nav { display:flex; overflow:auto; gap:8px; padding-bottom:5px; } nav a { flex:0 0 auto; padding:5px 10px; border-left:0; border-bottom:2px solid transparent; } nav .group { display:none; } main { margin:0; } .content { padding:0 20px; } h1 { font-size:35px; } h2 { font-size:27px; } .lead { font-size:17px; } section { padding:30px 0; } .split { grid-template-columns:1fr; gap:4px; } .flow { padding:14px; } .flow-line { flex-direction:column; } .node { flex:auto; } .arrow { justify-content:center; transform:rotate(90deg); height:28px; } pre { padding:16px; font-size:12px; } th,td { padding:10px; } }
+    @media print { .sidebar { display:none; } main { margin:0; } .content { max-width:none; padding:0; } body { background:#fff; font-size:11pt; } h1 { font-size:30pt; } section { padding:18px 0; } .snippet, .flow, figure, tr { break-inside:avoid; } pre { white-space:pre-wrap; overflow-wrap:anywhere; } a { color:inherit; } details > * { display:block; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#start">RasPi<br>Automation</a>
+    <p class="edition">Software-Handbuch<br>Codebasis vom 24. Oktober 2026</p>
+    <nav aria-label="Inhaltsverzeichnis">
+      <div class="group">Einstieg</div>
+      <a href="#start">01 &nbsp; Systembild</a>
+      <a href="#laufzeit">02 &nbsp; Prozess &amp; Einstieg</a>
+      <a href="#komponenten">03 &nbsp; Komponenten</a>
+      <a href="#kommandos">04 &nbsp; Kommandos</a>
+      <div class="group">Signalwege</div>
+      <a href="#position">05 &nbsp; Legacy: Position &amp; Zoom</a>
+      <a href="#audio">06 &nbsp; Audio</a>
+      <a href="#infrarot">07 &nbsp; Infrarot</a>
+      <a href="#hardware">08 &nbsp; HAL &amp; Timing</a>
+      <div class="group">Entwicklung &amp; Betrieb</div>
+      <a href="#daten">09 &nbsp; Daten &amp; Konfiguration</a>
+      <a href="#build">10 &nbsp; Build, Test &amp; Debug</a>
+      <a href="#diagnose">11 &nbsp; Diagnose</a>
+      <a href="#einstieg">12 &nbsp; Leseweg</a>
+    </nav>
+  </aside>
+  <main>
+    <header class="masthead">
+      <div class="content">
+        <p class="eyebrow">Technische Dokumentation / C auf Raspberry Pi</p>
+        <h1>RasPiAutomation</h1>
+        <p class="lead">Vom Kommando zum Hardwaresignal. Komponenten, Aufrufketten und Betriebswissen fuer Techniker, die in die Steuerungssoftware einsteigen.</p>
+        <div class="meta"><span>Stand: 24.10.2026</span><span>Sprache: C11</span><span>Ziel: AArch64 Linux</span><span>Quellen: aktueller Repository-Stand</span></div>
+      </div>
+    </header>
+    <div class="content">
+      <section id="start">
+        <h2><span class="num">01 / Orientierung</span>Was das System steuert</h2>
+        <div class="overview">
+          <div>
+            <p>RasPiAutomation ist die hardware-nahe Seite der JoKiAutomation-Anlage: ein Linux-Kommandozeilenprogramm fuer Audio und fernbedienbare Geraete. Kamerapositionierung ueber Relais und der Servozoom gehoeren ausschliesslich zum Legacy-Modus, der nicht mehr genutzt wird. Die Anlage laeuft auf einem Raspberry Pi mit Debian 64-Bit und RT-Patch. Die Buildkette erzeugt dafuer ein AArch64-Linux-Programm.</p>
+            <p>Die externe Windows-Anwendung kann das Programm per SSH starten. Die C-Anwendung selbst nimmt <strong>zwei numerische Argumente</strong> entgegen. Sie ist weder ein dauerhaft laufender Netzwerkserver noch die Implementierung der Windows-Oberflaeche.</p>
+            <p>Ein Aufruf fuehrt einen Steuerungsablauf aus und liefert einen Prozessstatus zurueck. Dabei werden Profile geladen, elektrische Signale ausgegeben und Mixerwerte zur Kontrolle zurueckgelesen. Positionsdaten und Winkelsensoren betreffen den nicht mehr genutzten Legacy-Pfad.</p>
+          </div>
+          <figure>
+            <img src="../img/RasPiAutomation.jpg" alt="Projektfoto der RasPiAutomation-Anlage" width="800" height="450">
+            <figcaption>Projektaufnahme aus dem Repository. Technische Pin- und Schnittstellenzuordnung: Kapitel 08.</figcaption>
+          </figure>
+        </div>
+        <div class="flow" role="img" aria-label="Externer Aufrufer startet CLI, main initialisiert, Command Interpreter verteilt an Audio und IR. Position und Zoom sind nicht mehr genutzter Legacy-Bestand.">
+          <div class="flow-line">
+            <div class="node"><strong>JoKiAutomation / Shell</strong><small>SSH oder lokaler Prozessstart</small></div><span class="arrow" aria-hidden="true">&rarr;</span>
+            <div class="node"><strong>main.c</strong><small>Instanzschutz, HAL, Timer</small></div><span class="arrow" aria-hidden="true">&rarr;</span>
+            <div class="node"><strong>CIexecuteCommand()</strong><small>Kommando + Index auswerten</small></div>
+          </div>
+          <div class="branches">
+            <div class="branch"><strong>AudioControl</strong><p>UART &rarr; RS232/USB &rarr; Audiomixer</p><p>Rueckweg: Kanalwerte und Verifikation</p></div>
+            <div class="branch"><strong>Legacy: PositionControl + Zoom</strong><p>Nicht mehr genutzt.</p><p>Historischer Pfad: GPIO &rarr; Relais / Servo &rarr; Kamera; Rueckweg ueber I&sup2;C-Winkelsensoren.</p></div>
+            <div class="branch"><strong>IRcontrol</strong><p>GPIO &rarr; IR-Sender &rarr; HDMI / Beamer / Recorder</p><p>Lernen: IR-Empfaenger &rarr; GPIO-Eingang</p></div>
+          </div>
+        </div>
+        <div class="note"><strong>Steuerpfad ist nicht Mediensignalweg.</strong><p>Die Software schaltet Geraete und Quellen. Das eigentliche Audio-/HDMI-Nutzsignal fliesst durch die angeschlossenen Geraete, nicht als Stream durch dieses C-Programm. Ein erfolgreich gesendeter IR-Befehl beweist deshalb nicht, dass das Zielgeraet umgeschaltet hat.</p></div>
+      </section>
+
+      <section id="laufzeit">
+        <h2><span class="num">02 / Laufzeitmodell</span>Ein Prozess, ein Auftrag</h2>
+        <ol>
+          <li><code>only_one_instance()</code> legt eine benutzerbezogene Lockdatei an und sperrt sie mit <code>fcntl(F_SETLK)</code>. Bei einer schon laufenden Instanz beendet sich der neue Prozess mit Status 1.</li>
+          <li><code>main()</code> akzeptiert nur <code>argc == 3</code>: Programmname, Kommandonummer und Index.</li>
+          <li><code>SYSTEM_Initialize()</code> initialisiert pigpio, registriert dessen Cleanup und versucht <code>SCHED_FIFO</code> mit Prioritaet 99 zu aktivieren.</li>
+          <li><code>initSystemTimer()</code> startet die Zeitbasis; die konfigurierte IP wird ausgegeben. Das ist kein Aufbau einer Netzwerkverbindung.</li>
+          <li><code>ACinit()</code> laedt Audioprofile. Danach dispatcht <code>CIexecuteCommand(argv)</code> den eigentlichen Auftrag.</li>
+          <li>Der Rueckgabewert des Dispatchers wird zum Prozess-Exitcode. Die registrierten <code>atexit()</code>-Funktionen geben Instanzschutz und pigpio frei.</li>
+        </ol>
+        <figure class="snippet"><figcaption><a href="../main.c">main.c</a><span>Originalausschnitt: erfolgreicher Argumentpfad</span></figcaption><pre><code class="language-c">ACinit();
+result = CIexecuteCommand(argv);</code></pre></figure>
+        <figure class="snippet"><figcaption><a href="../main.c">main.c</a><span>Originalausschnitt: Prozessstatus</span></figcaption><pre><code class="language-c">return result;</code></pre></figure>
+        <div class="note warning"><strong>Wichtige Grenzen des Laufzeitmodells</strong><p>Die Sperre ist benutzerbezogen, nicht systemweit fuer alle Benutzer. Die Module verwenden globale Zustandsdaten; der normale Kontrollfluss ist synchron und blockierend. Die mikrosekundenbasierten Timer und die angeforderte Scheduler-Prioritaet sind keine Garantie fuer harte Echtzeit. Der Rueckgabewert von <code>ACinit()</code> wird in <code>main()</code> derzeit nicht ausgewertet.</p></div>
+        <p>Die Lockdatei liegt bevorzugt unter <code>XDG_RUNTIME_DIR</code>, sonst <code>HOME</code>, sonst <code>/tmp</code>. Der Name enthaelt die Benutzer-ID. Ein fehlgeschlagener Instanzschutz oder eine fehlgeschlagene Systeminitialisierung beendet den Ablauf vor dem Dispatcher.</p>
+      </section>
+
+      <section id="komponenten">
+        <h2><span class="num">03 / Quellcodekarte</span>Alle Softwarekomponenten</h2>
+        <p>Die Tabelle trennt aktive Steuerungsmodule von mitgefuehrten Hilfs- und Altkomponenten. Dass eine Datei mitgebaut wird, bedeutet nicht automatisch, dass der normale CLI-Pfad sie aufruft.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Komponente / Quellen</th><th>Aufgabe und zentrale Funktionen</th><th>Abhaengigkeiten / Status</th></tr></thead>
+          <tbody>
+            <tr><td><a href="../main.c">main.c</a></td><td>Programmeinstieg; Argumentanzahl, Instanzschutz, Initialisierung und Exitcode.</td><td>System, Timer, Audio-Initialisierung, Dispatcher.</td></tr>
+            <tr><td><a href="../Command_Interpreter/ComInt.c">ComInt.c</a> / <a href="../Command_Interpreter/ComInt.h">ComInt.h</a></td><td><code>CIexecuteCommand()</code> verteilt CLI-Kommandos; <code>CIsequencer()</code> kombiniert Audio und IR zu Anlagenablaeufen. Speichert Beamer-Togglezustand.</td><td>Audio und IR; zusaetzlich erhaltene Legacy-Aufrufpfade fuer Position und Zoom.</td></tr>
+            <tr><td><a href="../AudioControl/AudioControl.c">AudioControl.c</a> / <a href="../AudioControl/AudioControl.h">AudioControl.h</a></td><td>Profil laden, vier Kanalwerte lesen, Fade ausfuehren, Profil verifizieren, Teach und Logrotation. <code>AC_Execute()</code> ist der Kommandoeinstieg.</td><td>POSIX-UART, termios, Dateisperre, Timer, binaere Profile.</td></tr>
+            <tr><td><a href="../AudioControl/AudioCommands.h">AudioCommands.h</a></td><td>Beschreibbare Protokollvorlagen wie <code>(MX?:VOL1)</code> und <code>(MX*:S:xxxx:63)</code>.</td><td>Definitionen stehen im Header; im aktuellen Audio-Treiber verwendet. Nicht ungeprueft in weitere Translation Units einbinden.</td></tr>
+            <tr><td><a href="../AudioControl/AudioControlValidation.c">AudioControlValidation.c</a> / <a href="../AudioControl/AudioControlValidation.h">.h</a></td><td>Reine Funktionen fuer Antwortformat, Kanalzuordnung, exakten Profilvergleich und Retry-Entscheidung.</td><td>Kein Hardwarezugriff; nativ testbar.</td></tr>
+            <tr><td><a href="../AudioControl/AudioControlWrite.c">AudioControlWrite.c</a> / <a href="../AudioControl/AudioControlWrite.h">.h</a></td><td><code>AC_WriteAllWith()</code> verarbeitet partielle Writes, <code>EINTR</code>, Null-Write und Fehler; Writer ist injizierbar.</td><td>Kein fest verdrahteter UART-Zugriff; nativ testbar.</td></tr>
+            <tr><td><a href="../PositionControl/PositionControl.c">PositionControl.c</a> / <a href="../PositionControl/PositionControl.h">.h</a></td><td><strong>Legacy, nicht mehr genutzt.</strong> <code>PC_Init()</code>, <code>PC_Move()</code>, <code>PC_Teach()</code>, <code>PC_MoveButton()</code>, <code>PC_Sequencer()</code>. Koordiniert Winkel, Relais und Zoom.</td><td>PositionDirect, ZoomControl, IR, Audio, Timer und HAL.</td></tr>
+            <tr><td><a href="../PositionControl/PositionDirect.c">PositionDirect.c</a> / <a href="../PositionControl/PositionDirect.h">.h</a></td><td><strong>Legacy, nicht mehr genutzt.</strong> AS5048B-Sensorzugriff; I&sup2;C-Register, Drehrichtung, Winkelumrechnung und Filter-/Mittelungsfunktionen.</td><td>Zwei Sensoren, Gier <code>0x41</code> und Nick <code>0x40</code>.</td></tr>
+            <tr><td><a href="../PositionControl/ZoomControl.c">ZoomControl.c</a> / <a href="../PositionControl/ZoomControl.h">.h</a></td><td><strong>Legacy, nicht mehr genutzt.</strong> Zeitgesteuerter Zoomservo; Konfiguration, Kalibrierung und Positionswerte. Zustandsautomat <code>ZoomControl_Task()</code>.</td><td><code>SYSTEM_PWM()</code> / pigpio-Servopulse; keine eigene Zoom-Winkelrueckmeldung in diesem Modul.</td></tr>
+            <tr><td><a href="../IRcontrol/IRcontrol.c">IRcontrol.c</a> / <a href="../IRcontrol/IRcontrol.h">.h</a></td><td>IR-Flanken und Zeiten lernen, speichern und als 38-kHz-Traegerfolge wiedergeben.</td><td>GPIO, Timer, gespeicherte Sequenzen. Kein Geraete-ACK im Sendepfad.</td></tr>
+            <tr><td><a href="../System_Raspberry/system.c">system.c</a> / <a href="../System_Raspberry/system.h">.h</a></td><td>Gemeinsame Systeminitialisierung, Scheduler, Buildkonfiguration, Zahlenbereichsabbildung <code>SYSTEM_map()</code>, Servo-Bruecke <code>SYSTEM_PWM()</code>.</td><td>pigpio-Adapter und generierter Konfigurationsheader.</td></tr>
+            <tr><td><a href="../System_Raspberry/pigpio_adapter.c">pigpio_adapter.c</a> / <a href="../System_Raspberry/pigpio_adapter.h">.h</a></td><td>Lokale Hardwareabstraktion: dynamisches Laden der pigpio-Direct-API, Legacy-Pinmapping, GPIO/I&sup2;C/Servo und Fehlertexte.</td><td><code>libpigpio.so.1</code> oder <code>libpigpio.so</code>; direkte lokale API, nicht pigpiod-Client.</td></tr>
+            <tr><td><a href="../Timer/timer.c">timer.c</a> / <a href="../Timer/timer.h">.h</a></td><td>Startzeit, Zeitdifferenz, Ablaufpruefung und blockierendes <code>wait()</code> mit Mikrosekundenwerten.</td><td><code>gettimeofday()</code>; aktive gemeinsame Zeitbasis.</td></tr>
+            <tr><td><a href="../System_Raspberry/cssl.c">cssl.c</a> / <a href="../System_Raspberry/cssl.h">.h</a></td><td>Mitgefuehrte Serialbibliothek mit Callback-/Signal- und Blocking-Schnittstelle.</td><td>Kein Aufruf aus dem regulaeren Audio-/CLI-Steuerpfad gefunden. AudioControl nutzt eigene POSIX-I/O.</td></tr>
+            <tr><td><a href="../System_Raspberry/hw.c">hw.c</a> / <a href="../System_Raspberry/hw.h">.h</a></td><td>Mitgefuehrte Registerbibliothek fuer direkten Peripheralzugriff, <code>raspi_map_hw()</code> ueber <code>/dev/mem</code>.</td><td>Kein Aufruf von <code>raspi_map_hw()</code> aus dem normalen CLI-Pfad gefunden; nicht mit dem aktiven pigpio-Adapter verwechseln.</td></tr>
+            <tr><td><a href="../TestProg/TestProg.c">TestProg.c</a> / <a href="../TestProg/TestProg.h">.h</a></td><td>Hardware-Diagnose: GPIO-Zeitversatz messen und maximalen Offset speichern; <code>TP_Test()</code> enthaelt eine Endlosschleife.</td><td>Kein Dispatcher-Aufruf fuer <code>TP_Test()</code> gefunden. Kein hardwarefreier Unit-Test.</td></tr>
+            <tr><td><a href="../tests/audio_control_validation_test.c">tests/audio_control_validation_test.c</a></td><td>Native Tests fuer Audio-Parser, Profilvergleich, Retry-Entscheidungen und Write-All-Grenzfaelle.</td><td>Separater CMake-Testmodus; prueft nicht das gesamte UART-/Mixer-System.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="kommandos">
+        <h2><span class="num">04 / Schnittstelle</span>Kommando und Index verstehen</h2>
+        <figure class="snippet"><figcaption><span>Linux-Shell</span><span>Schema und Beispiele; loesen reale Steuerungen aus</span></figcaption><pre><code class="language-shell">./RasPiAutomation &lt;command&gt; &lt;index&gt;
+
+./RasPiAutomation 30 113   # Gottesdienst: 0x70 + 1
+./RasPiAutomation 30 114   # Predigt:      0x70 + 2
+./RasPiAutomation 40 2     # nur Legacy: Kameraposition 2 (nicht mehr genutzt)
+./RasPiAutomation 50 4     # Anlagen-Sequenz: GoPro-Ansicht
+./RasPiAutomation 60 2     # nur Legacy: Zoomwert 2 (nicht mehr genutzt)</code></pre></figure>
+        <p>Die Werte werden mit <code>atoi()</code> gelesen. Daher dezimale Argumente verwenden: <code>114</code>, nicht <code>0x72</code>. Viele Indizes werden beim Dispatch auf <code>unsigned char</code> gekuerzt; ungueltige Eingaben deshalb nicht als sichere Validierungstests an der Anlage verwenden.</p>
+        <div class="table-wrap"><table><thead><tr><th>Kommando</th><th>Symbol</th><th>Index / Ziel</th></tr></thead><tbody>
+          <tr><td>10 / 11</td><td><code>CI_IR</code> / <code>CI_IR_TEACH</code></td><td>IR-Sequenz senden / lernen; Sequenz-ID.</td></tr>
+          <tr><td>30 / 31</td><td><code>CI_AUDIO_SWITCH</code> / <code>CI_AUDIO_TEACH</code></td><td>Audio-Befehlsbyte / gepackte Teach-Daten.</td></tr>
+          <tr><td>40 / 41</td><td><code>CI_POS_CONTROL</code> / <code>CI_POS_TEACH</code></td><td>Gespeicherte Kameraposition anfahren / einlernen.</td></tr>
+          <tr><td>43</td><td><code>CI_POS_MOVE_BTN</code></td><td>1 auf, 2 ab, 3 links, 4 rechts, 5 losgelassen/stoppen.</td></tr>
+          <tr><td>44</td><td><code>CI_POS_TEST</code></td><td>0: Positionstest; sonst <code>PC_Test()</code>. Bewegende Hardwaretests.</td></tr>
+          <tr><td>50</td><td><code>CI_SEQUENCE</code></td><td>Anlagen-Sequenz-ID aus <code>ComInt.h</code>, nicht Audioprofil-ID.</td></tr>
+          <tr><td>52</td><td><code>CI_POS_SEQUENCE</code></td><td><strong>Legacy, nicht mehr genutzt:</strong> Seamless-Switch fuer Kamerapositionen; gepackter Index fuer Audio + Zwischenansicht + Position.</td></tr>
+          <tr><td>60 / 61 / 62 / 63</td><td>Zoom-Kommandos</td><td>Position / Kalibrierung / Positionstest / direkte Servostellung.</td></tr>
+          <tr><td>20 / 21</td><td><code>CI_CAMERA</code> / <code>CI_CAMERA_TEACH</code></td><td>Im Header definiert, aber kein entsprechender Case im aktuellen <code>CIexecuteCommand()</code>. Nicht als implementierte CLI-Funktion annehmen.</td></tr>
+        </tbody></table></div>
+        <figure class="snippet"><figcaption><a href="../Command_Interpreter/ComInt.c">ComInt.c</a><span>Originalausschnitte: Interpretation und direkter Audiopfad</span></figcaption><pre><code class="language-c">int command = atoi(&amp;argv[1][0]);
+int index = atoi(&amp;argv[2][0]);</code></pre><pre><code class="language-c">case CI_AUDIO_SWITCH: // audio switch command
+    result = AC_Execute((unsigned char)index);
+break;</code></pre></figure>
+        <h3>Die Anlagen-Sequenzen</h3>
+        <p><code>CIsequencer()</code> kombiniert Audio und gelernte IR-Befehle. Hauefige IDs: 1 Pause, 2 Timer, 3 PPP/Band, 4 GoPro/Gottesdienst, 5 Positionskamera/Gottesdienst, 6 Predigerkamera/Predigt, 7 Gebet, 8 Leser, 9 Lied, 11 Reset, 12 Live-Video, 13 Beamer-Toggle und 20 Textansicht. Weitere IDs steuern Beamer und Backup-Recorder; die vollstaendige Definition steht in <a href="../Command_Interpreter/ComInt.h">ComInt.h</a>.</p>
+        <div class="note warning"><strong>Sequenz 15 ist ein Shutdown-Ablauf.</strong><p>Sequenzen sind keine unverbindlichen Vorschauen. Sie koennen Geraete schalten, Motoren starten, Daten schreiben oder den Raspberry Pi herunterfahren. Teach-, Kalibrier- und Testkommandos nur an einer freigegebenen Anlage ausfuehren.</p></div>
+      </section>
+
+      <section id="position">
+        <h2><span class="num">05 / Legacy-Signalweg</span>Kamerapositionierung und Zoom</h2>
+        <div class="note warning"><strong>Nur Legacy-Modus; nicht mehr genutzt.</strong><p>Die relaisbasierte Kamerapositionierung, die AS5048B-Winkelerfassung und der Servozoom gehoeren zur frueheren Anlage. Dieses Kapitel dokumentiert den erhaltenen Quellcode, nicht den aktuellen Betriebsablauf. Die Kommandos 40/41/43/44, 52 und 60..63 sind hier als Legacy-Schnittstellen zu verstehen, nicht als Bedienempfehlung fuer den aktuellen Betrieb.</p></div>
+        <h3>A. Einzelne Position: Kommando 40</h3>
+        <p>Der Dispatcher initialisiert IR, schaltet mit <code>IR_SequenceOut(2)</code> auf die Positionskamera, initialisiert Position und Zoom und ruft bei Erfolg <code>PC_Move(index)</code> auf. <strong>Dieser direkte Pfad fordert kein Audioprofil an.</strong></p>
+        <div class="flow"><div class="flow-line"><div class="node"><strong>40 + Positions-ID</strong><small>CIexecuteCommand()</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>PC_Init()</strong><small>Zoom, Sensoren, Positionen laden</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>PC_Move()</strong><small>Sollwinkel gegen Istwinkel</small></div></div><div class="branches"><div class="branch"><strong>Ausgabe</strong><p>RPI_Write &rarr; Relais &rarr; Nick/Gier-Motor</p></div><div class="branch"><strong>Rueckkopplung</strong><p>AS5048B &rarr; I&sup2;C &rarr; PositionDirect &rarr; angleData</p></div><div class="branch"><strong>Zoom</strong><p>ZoomControl_Task &rarr; SYSTEM_PWM &rarr; Servo</p></div></div></div>
+        <p><code>PC_Init()</code> laedt 22 Positionseintraege. Eintrag 21 liefert den Gier-Nullpunkt. <code>PC_calc_Angles()</code> liest beide Sensoren und rechnet die Gier relativ zu diesem Offset; negative Gierwinkel werden in den Bereich um 360 Grad korrigiert.</p>
+        <figure class="snippet"><figcaption><a href="../PositionControl/PositionControl.c">PositionControl.c</a><span>Originalausschnitt: Winkelrueckmeldung</span></figcaption><pre><code class="language-c">angleData.gier = PosDirect_angleR(&amp;PosDir_Gier, U_DEG, 1) - angleData.gierOffset;
+angleData.nick = PosDirect_angleR(&amp;PosDir_Nick, U_DEG, 1);
+if(angleData.gier &lt; 0)
+{
+    angleData.gier += 360;
+}</code></pre></figure>
+        <p>Vor einer automatischen Bewegung sperrt <code>PC_Move()</code> die lokale Fernbedienung. Aus einer Abweichung von mehr als 0,5 Grad werden Richtungsausgaenge abgeleitet. Fuer Gier gibt es zusaetzliche Zielbereichsbedingungen. Die Schleife liest fortlaufend Winkel, prueft das Erreichen des Ziels und bearbeitet den Zoom-Zustandsautomaten; sie ist auf 60 Sekunden begrenzt. Die konkrete Relaispolaritaet ist aus dem Code beziehungsweise dem Schaltplan abzuleiten, nicht aus dem Namen eines Pins.</p>
+        <div class="note"><strong>PTZ-Konfiguration ist eine Ausweichbedingung.</strong><p>Wenn <code>RASPI_CONFIG_PTZ_CAM_ENABLED != 0</code>, kehrt <code>PC_Move()</code> unmittelbar erfolgreich zurueck. Das bedeutet nicht, dass diese Funktion dann eine Netzwerkkamera bewegt; der Legacy-Relaisbewegungspfad wird uebersprungen.</p></div>
+        <h3>B. Legacy: Seamless-Switch fuer Kamerapositionen (Kommando 52)</h3>
+        <p><strong>Dieser Ablauf wird ebenfalls nicht mehr genutzt.</strong> Der historische Seamless-Switch zeigt waehrend der Kamerafahrt eine andere Quelle und schaltet danach auf die Positionskamera zurueck. Er gehoert zur Legacy-Kamerapositionierung, nicht zum aktuellen Betriebsablauf. Die allgemeine IR-Geraetesteuerung ist davon zu unterscheiden.</p>
+        <p><code>PC_Sequencer()</code> zerlegt den numerischen Index: Bits 0..7 enthalten die Position, Bits 8..11 die IR-Zwischenansicht und Bits 12..15 das Audioprofil. Die historische Reihenfolge ist <strong>Audio verifizieren &rarr; Zwischenansicht &rarr; Kamera bewegen &rarr; Positionskamera zurueckschalten</strong>. Scheitert Audio, wird die nachfolgende Bewegung in diesem Sequenzer nicht gestartet.</p>
+        <figure class="snippet"><figcaption><a href="../PositionControl/PositionControl.c">PositionControl.c</a><span>Originalausschnitte: gepackte Parameter und Ausfuehrung</span></figcaption><pre><code class="language-c">unsigned char position = (unsigned char)(ID &amp; 0xff);
+unsigned char camView =  (unsigned char )((ID &gt;&gt; 8) &amp; 0x0f);
+unsigned char audio =    (unsigned char )((ID &gt;&gt; 12) &amp; 0x0f);</code></pre><pre><code class="language-c">result = AC_Execute((unsigned char)AUDIO_PROFILE + audio );</code></pre><pre><code class="language-c">if(result == PC_SUCCESS)
+{
+    result = IR_SequenceOut(camView);
+}
+if(result == PC_SUCCESS)
+{
+    result = PC_Move(position);
+}
+if((result == PC_SUCCESS)&amp;&amp;(camView != 2))
+{
+    result = IR_SequenceOut(2);
+}</code></pre></figure>
+        <p>Historisches Legacy-Beispiel, keine aktuelle Bedienempfehlung: <code>0x2202</code> bedeutet Profil 2, Zwischenansicht 2, Position 2. Fuer die CLI dezimal: <code>./RasPiAutomation 52 8706</code>. Die Positions-ID ist ein Dateieintrag und darf nicht allein aus einer Ortsbezeichnung abgeleitet werden.</p>
+        <h3>C. Zoom ist zeitgesteuert</h3>
+        <p><code>ZoomControl_init()</code> laedt Servokonfiguration und Zoomwerte. Der Zustandsautomat verwendet <code>AZ_TASK_INITIALIZE</code> (10), <code>AZ_TASK_MOVE</code> (20) und <code>AZ_TASK_IDLE</code> (0). Die Servostellungen unterscheiden Mitte, Referenzfahrt und Steuerfahrt in beide Richtungen; gespeicherte Zoomwerte und Kalibrierzeit bestimmen den Bewegungsablauf. Die PWM-Ausgabe laeuft ueber <code>SYSTEM_PWM()</code> zu <code>RPI_ServoPulse()</code>. Die Konstante <code>AZ_SERVO_PERIOD</code> ist 20.000 Mikrosekunden; die Systembruecke uebergibt den Pulswert an pigpio und verwendet ihren <code>breakTime</code>-Parameter nicht.</p>
+        <p>Manuelle Richtungstasten verwenden dagegen <code>PC_MoveButton()</code>. Ein Druck setzt Richtungsrelais, <code>PC_BUTTON_RELEASED</code> stoppt alle vier Bewegungsrelais und gibt die Fernbedienung frei. Die Freigabe ist ein eigener Steuerungsaufruf und darf nicht vergessen werden.</p>
+      </section>
+
+      <section id="audio">
+        <h2><span class="num">06 / Signalweg</span>Ein Audioprofil gilt erst nach Ruecklesung</h2>
+        <p>Der Dispatcher gibt bei Kommando 30 das Befehlsbyte an <code>AC_Execute()</code> weiter. Das obere Nibble bestimmt die Operation; <code>AUDIO_PROFILE == 0x70</code>. Das untere Nibble ist beim Profilaufruf die Profilnummer.</p>
+        <div class="table-wrap"><table><thead><tr><th>Profil</th><th>Bedeutung</th><th>CLI-Index fuer Kommando 30</th></tr></thead><tbody><tr><td>0</td><td>Diashow</td><td>112 / 0x70</td></tr><tr><td>1</td><td>Gottesdienst</td><td>113 / 0x71</td></tr><tr><td>2</td><td>Predigt</td><td>114 / 0x72</td></tr><tr><td>3</td><td>Text</td><td>115 / 0x73</td></tr><tr><td>4</td><td>Band</td><td>116 / 0x74</td></tr><tr><td>5</td><td>Videoclip</td><td>117 / 0x75</td></tr></tbody></table></div>
+        <div class="flow"><div class="flow-line"><div class="node"><strong>AC_Execute()</strong><small>Port oeffnen, Operation dekodieren</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>AC_Profile()</strong><small>Sollprofil, Istwerte, Fade</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>Ruecklesen + Vergleich</strong><small>Erfolg oder ein kontrollierter Retry</small></div></div></div>
+        <ol>
+          <li><code>AC_open()</code> oeffnet <code>/dev/ttyUSB0</code>, sperrt den Port mit <code>flock()</code> und konfiguriert 9600 Baud, acht Datenbits, keine Paritaet, <strong>zwei Stoppbits</strong> (<code>CSTOPB</code>).</li>
+          <li><code>AC_Request()</code> uebernimmt vier gespeicherte Sollwerte aus <code>aC_Data.audioProfiles</code> in <code>volumeRequest</code>.</li>
+          <li><code>AC_GetVolume()</code> liest alle vier Kanaele. Jede Abfrage leert vorher ausschliesslich den UART-Eingang, sendet ihr Kanal-Kommando und wartet 30 ms.</li>
+          <li><code>AC_ParseVolumeResponse()</code> verlangt exakt <code>(VOLn:dd)</code>: neun Bytes, richtiger Kanal, zwei Dezimalziffern, Wert 0..63 und schliessende Klammer. Ungueltige Antworten werden nicht als Kanalwert uebernommen. Hoechstens zwei Versuche je Kanal; echte TX-/RX-Fehler brechen ab.</li>
+          <li><code>volumeSteps</code> wird aus den gelesenen Werten initialisiert. <code>AC_Control()</code> bewegt nur abweichende Kanaele schrittweise und wartet nach jedem gesendeten Kanalschritt 30 ms. Das ist nicht pauschal 30 ms fuer alle vier Kanaele zusammen.</li>
+          <li>Nach 100 ms Settling werden alle vier Kanaele erneut gelesen und exakt mit dem Soll verglichen.</li>
+          <li>Nur bei formal gueltiger Ruecklesung mit Abweichung gibt es einen zweiten Profilversuch. Dieser liest den Zustand neu ein. Nach zwei Abweichungen folgt Fehler 40; Kommunikationsfehler werden nicht durch einen blinden Profilretry verdeckt.</li>
+          <li>Erst bei Match wird das aktive Laufzeitprofil gesetzt. Der Port wird geschlossen und der Descriptor auf <code>-1</code> gesetzt.</li>
+        </ol>
+        <figure class="snippet"><figcaption><a href="../AudioControl/AudioControl.c">AudioControl.c</a><span>Originalausschnitt: Verifikationsentscheidung</span></figcaption><pre><code class="language-c">int matched = AC_ProfileValuesMatch(requested, actual);
+AC_ProfileDecision decision = AC_GetProfileDecision(AC_SUCCESS, matched, attempt);
+AC_Log("AC_PROFILE_VERIFY pid=%d profile=%u attempt=%d requested=%s actual=%s match=%d result=%u",
+    getpid(), index, attempt, requestedText, actualText, matched,
+    decision == AC_PROFILE_DECISION_FAIL ? AC_PROFILE_VERIFY_FAILED : AC_SUCCESS);</code></pre></figure>
+        <h3>Vom Befehlsstring bis zum Mixer</h3>
+        <p><a href="../AudioControl/AudioCommands.h">AudioCommands.h</a> liefert mutable Vorlagen. Eine Leseabfrage ist <code>(MX?:VOL2)</code>; die erwartete Antwort lautet etwa <code>(VOL2:50)</code>. Fuer eine Lautstaerkeaenderung werden Kanalzeichen und zweistelliger Wert in <code>(MX*:S:xxxx:63)</code> ersetzt.</p>
+        <p><code>AC_write()</code> ruft den Write-All-Helfer mit der System-Write-Funktion auf. Erfolg bedeutet, dass alle angeforderten Bytes uebergeben wurden. Das ist noch kein Beweis fuer den Mixerzustand; diesen liefert erst die anschliessende Verifikation. Die uebergebenen Laengen stammen im Bestand vielfach aus <code>sizeof(array)</code> und enthalten damit auch das abschliessende Nullbyte.</p>
+        <figure class="snippet"><figcaption><a href="../AudioControl/AudioControlWrite.c">AudioControlWrite.c</a><span>Originalausschnitt: partielle Writes und EINTR</span></figcaption><pre><code class="language-c">while (*written &lt; length)
+{
+    ptrdiff_t bytesWritten = writeFunction(fd, buffer + *written, length - *written);
+    if (bytesWritten &gt; 0 &amp;&amp; (size_t)bytesWritten &lt;= length - *written)
+    {
+        *written += (size_t)bytesWritten;
+        continue;
+    }
+    if (bytesWritten &lt; 0 &amp;&amp; errno == EINTR)
+    {
+        continue;
+    }
+    *errorNumber = bytesWritten == 0 || bytesWritten &gt; 0 ? EIO : errno;
+    return AC_TX_FAILED;
+}</code></pre></figure>
+        <h3>Signale im Log unterscheiden</h3>
+        <figure class="snippet"><figcaption><span>Beispiellog, kein protokollierter Hardware-Abnahmelauf</span><span>Auszug eines erfolgreichen Profilwechsels</span></figcaption><pre><code class="language-log">COMMAND pid=6481 command=30 index=114
+AC_PROFILE_READ_AFTER pid=6481 profile=2 attempt=1 requested=0,50,0,31 actual=0,50,0,31 result=0
+AC_PROFILE_VERIFY pid=6481 profile=2 attempt=1 requested=0,50,0,31 actual=0,50,0,31 match=1 result=0
+AC_PROFILE_SUCCESS pid=6481 profile=2 attempt=1 requested=0,50,0,31 actual=0,50,0,31 result=0</code></pre></figure>
+        <p><code>AC_WRITE_OK</code> belegt Byteuebergabe. <code>AC_VOLUME_RESPONSE_OK</code> belegt eine gueltige Kanalantwort. <code>AC_PROFILE_WRITE_END actual=unverified</code> ist absichtlich kein bestaetigter Istwert. Erst <code>AC_PROFILE_VERIFY match=1</code> und <code>AC_PROFILE_SUCCESS</code> bestaetigen den gelesenen Endzustand.</p>
+        <div class="note"><strong>Externe Zweibuchstabencodes sind keine CLI-Schnittstelle dieses Programms.</strong><p>Bezeichnungen wie <code>GP</code> oder <code>KP</code> werden ausserhalb dieses C-Dispatchers in numerische Befehle umgesetzt. Im beschriebenen JoKiAutomation-Mapping steht das zweite Zeichen fuer Audio: D/G/P/T/B. <code>GG</code> ist damit Gottesdienst, nicht Predigt. Den exakten externen Mapping-Code enthaelt dieses Repository nicht.</p></div>
+      </section>
+
+      <section id="infrarot">
+        <h2><span class="num">07 / Signalweg</span>IR-Sequenzen lernen und senden</h2>
+        <div class="split"><div><h3>Lernen: Kommando 11</h3><p>Ein IR-Empfaenger liefert Flanken an <code>IR_IN</code>. <code>IR_SequenceIn()</code> misst Signalzustaende und ihre Dauer, legt diese in <code>IR_sequences</code> ab und persistiert die Sequenzen. Die Konstanten begrenzen den Teach-Warteablauf auf neun Sekunden; eine Pause von 60 ms dient zur Erkennung des Sequenzendes.</p></div><div><h3>Senden: Kommando 10</h3><p><code>IR_SequenceOut()</code> spielt die gespeicherten Signal-/Zeitpaare ab. In aktiven Signalphasen wird der 38-kHz-Traeger durch zeitgesteuertes GPIO-Umschalten erzeugt. <code>IR_RETRY</code> legt pro Sequenz Wiederholungen fest. Die Ausgangsleitung wird am Ende abgeschaltet.</p></div></div>
+        <div class="flow"><div class="flow-line"><div class="node"><strong>Sequenz-ID</strong><small>CIexecuteCommand / CIsequencer</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>IR_sequences</strong><small>Signal + Zeit aus IR_Dat.bin</small></div><span class="arrow" aria-hidden="true">&rarr;</span><div class="node"><strong>Timer + RPI_Write()</strong><small>IR_OUT &rarr; Sender &rarr; Zielgeraet</small></div></div></div>
+        <figure class="snippet"><figcaption><a href="../IRcontrol/IRcontrol.h">IRcontrol.h</a><span>Originalausschnitt: ein gelernter Signalabschnitt</span></figcaption><pre><code class="language-c">typedef struct
+{
+    unsigned char signal;        // IR_OUT signal 0 or 1
+    unsigned long long IR_Time; // The signal time in microseconds
+}IR_Data;</code></pre></figure>
+        <p>Es gibt 20 Sequenzen mit jeweils bis zu 100 Signalabschnitten. Die ID ist eine gelernte Speicherposition, nicht ein standardisierter Geraetebefehl. Im Anlagenablauf stehen beispielsweise die IR-Sequenzen 0..4 fuer HDMI-Quellen und weitere Sequenzen fuer Beamer-/Recorderfunktionen. Ob die gespeicherte Sequenz dazu passt, haengt von der eingelernten Datei ab.</p>
+        <div class="note warning"><strong>Kein geschlossener Regelkreis wie beim Audio.</strong><p>Der IR-Sendepfad bekommt keine bestaetigte Quellenwahl vom HDMI-Switch oder Beamer zurueck. Bei Fehlern deshalb auch Sichtverbindung, Sender, Empfaenger und gelernte Pulsfolge pruefen. Eine weitere IR-Wiederholung ist keine Zustandsverifikation.</p></div>
+      </section>
+
+      <section id="hardware">
+        <h2><span class="num">08 / Unterbau</span>HAL, Pins und Zeitbasis</h2>
+        <h3>pigpio-Adapter statt direkter Modulabhaengigkeit</h3>
+        <p>Die Steuerungsmodule verwenden die lokalen <code>RPI_*</code>-Funktionen. Der Adapter laedt pigpio dynamisch mit <code>dlopen()</code> und bindet Funktionen mit <code>dlsym()</code>. Er uebersetzt die im Altcode verwendete Legacy-/wiringPi-Nummerierung nach BCM und oeffnet I&sup2;C-Geraete auf Bus 1. Fehlertexte sind ueber <code>RPI_LastError()</code> verfuegbar.</p>
+        <figure class="snippet"><figcaption><a href="../System_Raspberry/system.c">system.c</a><span>Originalausschnitt: Hardwareinitialisierung</span></figcaption><pre><code class="language-c">if (RPI_Initialize() &lt; 0)
+{
+    fprintf(stderr, "pigpio initialization failed: %s\n", RPI_LastError());
+    return -1;
+}
+atexit(RPI_Terminate);</code></pre></figure>
+        <div class="note warning"><strong>Direct API, nicht pigpiod.</strong><p>Der aktuelle Adapter laedt <code>libpigpio</code>, keinen Daemon-Client. Zugriffsrechte auf die Hardware und ein moeglicher Konflikt mit einem laufenden <code>pigpiod</code> muessen zur lokalen Installation passen. Eine Gruppenmitgliedschaft allein garantiert keinen erfolgreichen pigpio-Start. Bei Initialisierungsfehlern den konkreten Adapterfehler auswerten.</p></div>
+        <p>Die folgenden Positions-, Winkelgeber- und Servoanschluesse gehoeren zum nicht mehr genutzten Legacy-Modus. Die Bezeichnung Legacy-Pin beschreibt dagegen das Nummernsystem und gilt auch fuer aktive IR-Pins.</p>
+        <div class="table-wrap"><table><thead><tr><th>Signal</th><th>Legacy-Pin im Code</th><th>BCM nach Adapter</th><th>Verwendung</th></tr></thead><tbody>
+          <tr><td>IR_OUT / IR_IN</td><td>11 / 31</td><td>7 / 1</td><td>IR senden / lernen</td></tr>
+          <tr><td>GIER_LEFT / GIER_RIGHT</td><td>21 / 22</td><td>5 / 6</td><td>Positionsrelais</td></tr>
+          <tr><td>NICK_UP / NICK_DOWN</td><td>23 / 24</td><td>13 / 19</td><td>Positionsrelais</td></tr>
+          <tr><td>LOCK_REMOTE</td><td>25</td><td>26</td><td>Lokale Fernbedienung sperren</td></tr>
+          <tr><td>SERVO_PWM_ZOOM</td><td>26</td><td>12</td><td>Zoom-Servopuls</td></tr>
+          <tr><td>PC_OUT_1 / 2 / 3</td><td>27 / 28 / 29</td><td>16 / 20 / 21</td><td>Zusaetzliche Ausgaenge; 28/29 auch als PC_IN_1/2 benannt</td></tr>
+          <tr><td>Gier / Nick-Sensor</td><td>I&sup2;C-Bus 1</td><td>Adresse 0x41 / 0x40</td><td>AS5048B-Winkelregister, keine Legacy-GPIO-ID</td></tr>
+          <tr><td>Audiomixer</td><td>/dev/ttyUSB0</td><td>Nicht ueber Pinmapping</td><td>9600 Baud, 8N2, RS232/USB</td></tr>
+        </tbody></table></div>
+        <p>BCM ist nicht die physische Nummer am 40-poligen Stecker. Fuer Verdrahtung und Sicherungen zusaetzlich <a href="GPIO-Pinbelegung.md">GPIO-Pinbelegung.md</a>, <a href="Interface.jpg">Interface.jpg</a> und <a href="PinMap.bmp">PinMap.bmp</a> verwenden. Die Tabelle beschreibt die aktuelle Softwarezuordnung und ersetzt keine elektrische Freigabe.</p>
+        <h3>Timer sind aktiv wartend</h3>
+        <p><code>systemtimer</code> speichert die Startzeit. <code>startMeasurement()</code>, <code>isExpired()</code> und <code>getRelativeTickCount()</code> benutzen <code>gettimeofday()</code>. <code>wait()</code> pollt die Uhr, statt den Thread schlafen zu legen.</p>
+        <figure class="snippet"><figcaption><a href="../Timer/timer.c">timer.c</a><span>Originalausschnitt aus wait(): Busy-Wait-Schleife</span></figcaption><pre><code class="language-c">do
+{
+    gettimeofday(&amp;tv,0);
+    systemTime = (1000000*tv.tv_sec) + tv.tv_usec;
+    curTime = systemTime;
+}
+while((curTime - waitTimer.startTime_) &lt; timeout);</code></pre></figure>
+        <p>Folgen fuer die Fehlersuche: Wartezeiten verbrauchen CPU, Zeitwerte werden in Mikrosekunden angegeben und Aenderungen der Systemuhr koennen die Messung beeinflussen. <code>gettimeofday()</code> ist keine monotone Uhr. Der globale <code>waitTimer</code> und andere globale Modulzustaende sind nicht als thread-sichere Parallel-API entworfen. Auch <code>SCHED_FIFO</code> pinnt den Prozess nicht automatisch an einen CPU-Kern.</p>
+      </section>
+
+      <section id="daten">
+        <h2><span class="num">09 / Zustand</span>Konfiguration und Persistenz</h2>
+        <p>Viele Module speichern C-Strukturen direkt mit <code>fread()</code> / <code>fwrite()</code>. Die binaeren Dateien sind Teil des Anlagenzustands, kein austauschbares JSON-Format. Strukturformat, Padding, Datentypbreiten und Zielarchitektur koennen relevant sein. Vor Teach, Kalibrierung und Formatveraenderungen immer eine Sicherung erstellen.</p>
+        <div class="table-wrap"><table><thead><tr><th>Datei unter /home/pi/JokiAutomation/config/</th><th>Besitzer</th><th>Inhalt / Bedeutung</th></tr></thead><tbody>
+          <tr><td>AC_Dat.bin</td><td>AudioControl</td><td><code>AC_Data</code>: aktives Profilfeld und zehn Profile mit je vier Kanalwerten. Ein normaler Profilaufruf aktualisiert das Laufzeitfeld, schreibt aber nicht automatisch die Datei.</td></tr>
+          <tr><td>PC_Dat.bin</td><td>PositionControl</td><td>22 Winkel-/Positionseintraege; Gier-Referenz aus Eintrag 21.</td></tr>
+          <tr><td>IR_Dat.bin</td><td>IRcontrol</td><td>Gelernte Signal-/Zeitfolgen fuer 20 IR-Sequenzen.</td></tr>
+          <tr><td>CI_Dat.bin</td><td>Command_Interpreter</td><td>Persistierter Beamer-Togglezustand und Reservefeld.</td></tr>
+          <tr><td>zoomconfig.bin</td><td>ZoomControl</td><td>Servomitte, Referenz-/Steuerpulse und Kalibrierzeit.</td></tr>
+          <tr><td>zoomValues.bin</td><td>ZoomControl</td><td>Gespeicherte Zoompositionen.</td></tr>
+          <tr><td>PC_Offset_Dat.bin</td><td>TestProg</td><td>Maximal gemessener GPIO-Zeitversatz des separaten Hardwaretests.</td></tr>
+        </tbody></table></div>
+        <p><code>PC_Dat.bin</code>, <code>zoomconfig.bin</code>, <code>zoomValues.bin</code> und die Offsetmessung sind Legacy-Daten. Sie werden hier zur Einordnung des Bestands beschrieben und sind fuer die nicht mehr genutzte Positions-/Zoomsteuerung vorgesehen.</p>
+        <h3>Buildkonfiguration ist nicht Laufzeitkonfiguration</h3>
+        <p><a href="../CMakeLists.txt">CMakeLists.txt</a> sucht eine <code>network.cfg</code> zunaechst im Elternverzeichnis, danach im Repository. Daraus werden unter anderem <code>PTZ_CAM</code> und eine IP-Angabe verarbeitet. Fuer die IP existiert ein Umgebungsvariablen-Fallback <code>RASPI_IP_ADDRESS</code>. Das Ergebnis landet im generierten Header <code>generated/raspi_build_config.h</code> des jeweiligen Buildverzeichnisses.</p>
+        <p>Eine Aenderung dieser Werte erfordert deshalb erneutes Konfigurieren und Bauen. <code>SYSTEM_GetConfiguredIPAddress()</code> liest den einkompilierten Wert; es fragt nicht die aktuelle Netzwerkkarte ab. Maschinen- und SSH-Einstellungen liegen ausserdem im VS-Code-/Deployment-Umfeld. Zugangsdaten gehoeren nicht in Dokumentation oder Logs.</p>
+        <h3>Logdatei</h3>
+        <p>AudioControl schreibt nach <code>/home/pi/JokiAutomation/log/AudioControl.log</code>. Rotation erfolgt ab etwa 5 MiB auf <code>.1</code> und <code>.2</code>. Bei fehlenden Rechten kann <code>AC_Log()</code> ohne Logausgabe zurueckkehren; eine fehlende Datei bedeutet daher nicht automatisch, dass kein Kommando aufgerufen wurde.</p>
+      </section>
+
+      <section id="build">
+        <h2><span class="num">10 / Werkzeugkette</span>Build, Tests, Deployment und Debug</h2>
+        <div class="table-wrap"><table><thead><tr><th>Bestandteil</th><th>Rolle</th></tr></thead><tbody>
+          <tr><td><a href="../CMakeLists.txt">CMakeLists.txt</a></td><td>C11-Programm <code>RasPiAutomation</code>; rekursiv gesammelte C-Quellen der Module; Includes, generierter Header und Bibliotheken <code>m</code>, <code>dl</code>, <code>pthread</code>. Die Linkbibliothek pthread allein bedeutet nicht, dass die Steuerung multithreaded ist.</td></tr>
+          <tr><td><a href="../cmake/toolchains/aarch64-linux-gnu.cmake">aarch64-linux-gnu.cmake</a></td><td>AArch64-Crosscompiler, Sysroot und Toolchainpfade. Host-Windows und Ziel-Linux auseinanderhalten.</td></tr>
+          <tr><td><a href="../.vscode/tasks.json">.vscode/tasks.json</a></td><td>Configure-/Build-Tasks, Release-Deployment, Debug-Vorbereitung, Diagnose und optionale Sysroot-Synchronisation.</td></tr>
+          <tr><td><a href="../.vscode/cmake_configure_rpi.ps1">cmake_configure_rpi.ps1</a></td><td>Konfiguriert Raspberry-Debug-/Release-Buildverzeichnisse mit Cross-Toolchain.</td></tr>
+          <tr><td><a href="../.vscode/deploy_raspi_binary.ps1">deploy_raspi_binary.ps1</a></td><td>Uebertraegt die gebaute Release-Binary anhand der lokalen SSH-/Zielkonfiguration.</td></tr>
+          <tr><td><a href="../.vscode/start_gdbserver.ps1">start_gdbserver.ps1</a> / <a href="../.vscode/launch.json">launch.json</a></td><td>Debug-Binary und Remote-gdbserver vorbereiten; VS Code verbindet den Cross-Debugger.</td></tr>
+          <tr><td><a href="../scripts/README.md">scripts/README.md</a></td><td>Zusaetzliche Build-/Clean-/Toolchain- und Sysroot-Hilfsskripte. Vor Verwendung auf lokale Pfade und Wirkung pruefen.</td></tr>
+          <tr><td><a href="../SetToolChain.bat">SetToolChain.bat</a></td><td>Toolchain-Umgebung fuer den lokalen Windows-Arbeitsplatz.</td></tr>
+          <tr><td>build-rpi-debug / build-rpi-release / build-rpi</td><td>Generierte CMake-/Ninja-Artefakte. Nicht mit den Quellen bearbeiten.</td></tr>
+          <tr><td><a href="../Release/makefile">Release/makefile</a> sowie Debug/ und Release/</td><td>Mitgefuehrte fruehere Buildartefakte/Make-Struktur. Die dokumentierte aktuelle VS-Code-Kette verwendet CMake; alte Makefiles sind kein Nachweis fuer aktuelle Helper-Einbindung.</td></tr>
+        </tbody></table></div>
+        <h3>Regulaerer Entwicklungsablauf</h3>
+        <ol><li>Passende Toolchain und zum Pi passende Bibliotheken/Sysroot bereitstellen.</li><li>In VS Code <strong>Build Debug (RasPi)</strong> oder <strong>Build Release (RasPi)</strong> ausfuehren. Die Configure-Abhaengigkeit legt den Crossbuild an.</li><li>Native Audio-Tests getrennt auf dem Entwicklungsrechner ausfuehren.</li><li>Fuer die Hardwareabnahme den Release-Stand mit <strong>Update RasPi (Release)</strong> beziehungsweise dem vorgesehenen Deploy-Task uebertragen.</li><li>Bei Remote-Debugging <strong>Debug RasPi (Remote)</strong> und die zugehoerige Launch-Konfiguration verwenden. Breakpoints koennen Motor-/IR-Zeitverhalten beeinflussen.</li></ol>
+        <h3>Hardwarefreie Tests reproduzieren</h3>
+        <figure class="snippet"><figcaption><span>PowerShell / nativer C-Compiler</span><span>Separates Buildverzeichnis, keine Hardwarezugriffe</span></figcaption><pre><code class="language-shell">cmake -S . -B build-audio-tests -DAC_BUILD_HARDWARE_FREE_TESTS=ON
+cmake --build build-audio-tests --config Debug
+ctest --test-dir build-audio-tests -C Debug --output-on-failure</code></pre></figure>
+        <p>Der Schalter aktiviert einen isolierten CMake-Modus: nur der Audio-Test und seine reinen Helper werden gebaut. Er ist nicht mit dem Raspberry-Crossbuild zu vermischen. <code>--config Debug</code> und <code>-C Debug</code> sind insbesondere beim Visual-Studio-Generator wichtig; die Tests verwenden <code>assert()</code>, das in Builds mit <code>NDEBUG</code> deaktiviert sein kann.</p>
+        <p>Abgedeckt sind gueltige/ungueltige Kanalantworten, exakter Profilvergleich, die Retry-Entscheidung sowie partielle Writes, <code>EINTR</code>, Null-Write und Fehler nach Teiluebertragung. Die Tests ersetzen <strong>keinen vollstaendigen UART-/Profil-Integrationstest</strong>, keinen Motor-/Sensorentest und keine akustische Abnahme.</p>
+        <div class="note"><strong>Nachweisstand beim Erstellen dieser Doku</strong><p>In der vorangegangenen Codevalidierung liefen native Audio-Tests sowie Debug- und Release-Crossbuild erfolgreich. Die HTML-Erstellung startet keine Hardwaretests, kein Deployment und keinen neuen Produktivlauf. Ein am echten Audiomixer beobachteter Erfolg und der externe SSH-End-to-End-Pfad sind separat abzunehmen.</p></div>
+      </section>
+
+      <section id="diagnose">
+        <h2><span class="num">11 / Betrieb</span>Fehler eingrenzen statt blind wiederholen</h2>
+        <h3>Rueckgabepfad und seine Grenzen</h3>
+        <p>Im direkten Audiopfad gilt <code>AC_Profile &rarr; AC_Execute &rarr; CIexecuteCommand &rarr; main &rarr; Prozessstatus</code>. Fehler 40 bleibt dort ein nicht-null Exitcode. Ob ein externer SSH-Client ihn korrekt anzeigt, ist ausserhalb dieses Repositories zu pruefen. Einige aeltere Mehrmodul-Sequenzen kombinieren dezimale Fehlerwerte mit <code>|=</code>; dort kann der resultierende Wert keinem urspruenglichen Einzelfehler entsprechen.</p>
+        <div class="table-wrap"><table><thead><tr><th>Audio-Code</th><th>Bedeutung</th><th>Erster Diagnoseansatz</th></tr></thead><tbody><tr><td>0</td><td>AC_SUCCESS</td><td>Beim Profil zusaetzlich VERIFY/SUCCESS-Marker im selben PID-Ablauf ansehen.</td></tr><tr><td>31</td><td>AC_COM_FAILED</td><td>Device, Rechte, Portbelegung/Lock.</td></tr><tr><td>32 / 33</td><td>TX / RX fehlgeschlagen</td><td>Bytezahlen, errno, USB-/UART-Verbindung.</td></tr><tr><td>35 / 36</td><td>Datei schreiben / lesen fehlgeschlagen</td><td>Konfigurationspfad, Datei, Rechte.</td></tr><tr><td>37 / 38</td><td>Bereich / Timeout</td><td>Index und Antwortablauf pruefen.</td></tr><tr><td>39</td><td>AC_INVALID_RESPONSE</td><td>Kanal, Laenge, escaped Rohantwort und reason.</td></tr><tr><td>40</td><td>AC_PROFILE_VERIFY_FAILED</td><td>Gueltige Istwerte stimmen auch nach dem zweiten Profilversuch nicht mit Soll ueberein.</td></tr></tbody></table></div>
+        <details open><summary>Audio schaltet nicht oder erst beim zweiten Aufruf</summary><p>Nach PID, Profil und attempt filtern. <code>COMMAND</code> belegt den angeforderten Index; 114 ist Predigt. Danach WRITE, Kanalantworten, READ_AFTER und VERIFY ansehen. <code>match=0</code> mit <code>AC_PROFILE_RETRY</code> ist eine gueltig erkannte Abweichung. Ein Parser-/UART-Fehler ist ein anderer Fehlerpfad. Profilwerte nicht vorschnell aendern, bevor Soll-/Ist-Unterschied und Kommunikation getrennt sind.</p></details>
+        <details><summary>Legacy-Archiv: Kamera bewegt sich nicht</summary><p>Kein aktueller Betriebsfall; die Legacy-Steuerung wird nicht mehr genutzt. Fuer die historische Codeanalyse pruefen, ob Kommando 40 oder 52 aufgerufen wurde, ob Audio/IR/Initialisierung vorher fehlschlugen und ob der PTZ-Buildschalter den Legacy-Bewegungspfad deaktiviert. Danach I&sup2;C-Adressen, Winkelwerte, gespeichertes Ziel, Relaisausgaenge und Remote-Lock pruefen. Eine beendete Timeout-Schleife nicht ohne Code-/Messwertpruefung als nachgewiesene Zielerreichung behandeln.</p></details>
+        <details><summary>Legacy-Archiv: Zoom passt nicht zur Position</summary><p>Kein aktueller Betriebsfall; der Servozoom wird nicht mehr genutzt. Die historische Steuerung ist zeit- und kalibrierungsbasiert, nicht derselbe Winkelregelkreis wie Gier/Nick. Zugehoerige Daten sind <code>zoomconfig.bin</code>, <code>zoomValues.bin</code>, Servo-Mitte, Referenzfahrt und Pulszuordnung. Nicht ungeprueft mit neuen Kalibrierwerten ueberschreiben.</p></details>
+        <details><summary>IR meldet Erfolg, Geraet bleibt unveraendert</summary><p>Erfolg beschreibt den lokalen Sendepfad. Gelernte Sequenz-ID, IR_Dat.bin, Senderposition, Zielgeraet und Wiederholungen kontrollieren. Aus dem IR-Ausgang allein folgt kein bestaetigter HDMI- oder Beamerzustand.</p></details>
+        <details><summary>Programm startet nicht oder Timing ist auffaellig</summary><p>Instanzschutz, Hardwarezugriffsrechte, pigpio-Bibliothek und pigpiod-Konflikt getrennt pruefen. Scheduler-Warnung bedeutet, dass die angeforderte Prioritaet nicht erreicht wurde. CPU-Last durch Busy-Waits und Systemuhr-Aenderungen koennen Zeitverhalten beeinflussen. Ein normaler Linux-Host ohne Hardware ist kein Ersatz fuer den Pi.</p></details>
+        <h3>Abnahme an der Anlage</h3>
+        <ul class="checklist"><li><b>01</b>Konfiguration und Teach-Dateien sichern; Anlage fuer die Pruefung freigeben.</li><li><b>02</b>Passende Binary deployen und Version/Buildstand nachvollziehbar notieren.</li><li><b>03</b>Gottesdienst &rarr; Predigt &rarr; Gottesdienst &rarr; Predigt mehrfach ausfuehren; reale Kanalwerte, Log und akustischen Zustand vergleichen.</li><li><b>04</b>Aktuelle externe Audioanforderung pruefen: numerischen COMMAND-Log mit dem gewuenschten Profil abgleichen. Legacy-Kamerapositionierung, Servozoom und deren Seamless-Switch sind nicht Teil dieser Betriebsabnahme.</li><li><b>05</b>Fehlerfall und non-zero Prozess-/SSH-Exitcode kontrolliert pruefen; die Anzeige in JoKiAutomation muss den Fehler erhalten.</li></ul>
+      </section>
+
+      <section id="einstieg">
+        <h2><span class="num">12 / Startpunkt fuer neue Techniker</span>In dieser Reihenfolge lesen</h2>
+        <ol><li><a href="../main.c">main.c</a>: Wo beginnt und endet ein Auftrag? Welche Initialisierung kann vorher abbrechen?</li><li><a href="../Command_Interpreter/ComInt.h">ComInt.h</a> und <a href="../Command_Interpreter/ComInt.c">ComInt.c</a>: Kommandozahlen, Indizes und Mehrmodul-Sequenzen.</li><li>Den konkreten Fall bis zur Funktion verfolgen: <a href="../AudioControl/AudioControl.c">AC_Profile()</a>, <a href="../PositionControl/PositionControl.c">PC_Move() / PC_Sequencer()</a> oder <a href="../IRcontrol/IRcontrol.c">IR_SequenceOut()</a>.</li><li>Den Rueckweg verstehen: Audioparser, Winkelabfrage oder fehlende IR-Zustandsbestaetigung.</li><li><a href="../System_Raspberry/pigpio_adapter.c">pigpio_adapter.c</a>, <a href="../Timer/timer.c">timer.c</a> und persistierte Dateiformate lesen, bevor Hardware-/Timingannahmen geaendert werden.</li><li><a href="../tests/audio_control_validation_test.c">Audio-Tests</a> nativ ausfuehren; danach Crossbuild und erst anschliessend freigegebene Hardwaretests.</li></ol>
+        <h3>Begriffe auf einen Blick</h3>
+        <p><strong>Gier</strong> = horizontale Drehung, <strong>Nick</strong> = vertikale Neigung. <strong>Teach</strong> = aktuellen Anlagenzustand als wiederverwendbare Daten speichern. <strong>Profil</strong> = vier Audio-Sollwerte; <strong>Sequenz</strong> = koordinierter Ablauf oder gelernte IR-Zeitfolge, je nach Modul. <strong>HAL</strong> = Hardwareabstraktion. <strong>Legacy-Pin</strong>, <strong>BCM</strong> und <strong>Steckerpin</strong> sind unterschiedliche Nummernsysteme.</p>
+        <p>Weitere Projektunterlagen: <a href="../README.md">README</a>, <a href="GPIO-Pinbelegung.md">GPIO-Belegung</a>, <a href="rs_audiomix_4_1_bus.pdf">Audiomixer-Protokoll</a>, <a href="AS5048B/">Sensorunterlagen</a>, <a href="../pigpio-migration-report.md">pigpio-Migrationsbericht</a> und <a href="../scripts/README.md">Skript-Dokumentation</a>.</p>
+      </section>
+      <footer>RasPiAutomation &middot; Interne Software-Einstiegsdokumentation &middot; Stand 24.10.2026<br>Codeausschnitte sind gekuerzte, getrennt gekennzeichnete Auszuege aus der Codebasis. Quellenlinks beziehen sich auf die Verzeichnisstruktur dieses Repositories. Bei spaeteren Aenderungen am Code ist die Dokumentation erneut abzugleichen.</footer>
+    </div>
+  </main>
+  <script>
+    (() => {
+      const escapeHtml = value => value.replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+      const cTokens = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:unsigned|signed|char|int|long|short|double|float|void|static|const|volatile|struct|typedef|enum|if|else|switch|case|default|break|return|while|do|for|continue|sizeof|goto)\b|\b(?:0x[\da-fA-F]+|\d+(?:\.\d+)?)\b|\b[A-Z][A-Z_\d]+\b|\b[A-Za-z_]\w*(?=\s*\())/g;
+      document.querySelectorAll('code.language-c').forEach(block => {
+        const source = block.textContent;
+        let html = '';
+        let cursor = 0;
+        for (const token of source.matchAll(cTokens)) {
+          html += escapeHtml(source.slice(cursor, token.index));
+          const text = token[0];
+          let kind = 'function';
+          if (text.startsWith('//') || text.startsWith('/*')) kind = 'comment';
+          else if (text.startsWith('"') || text.startsWith("'")) kind = 'string';
+          else if (/^\d/.test(text)) kind = 'number';
+          else if (/^[A-Z][A-Z_\d]+$/.test(text)) kind = 'constant';
+          else if (/^(unsigned|signed|char|int|long|short|double|float|void|static|const|volatile|struct|typedef|enum|if|else|switch|case|default|break|return|while|do|for|continue|sizeof|goto)$/.test(text)) kind = 'keyword';
+          html += '<span class="tok-' + kind + '">' + escapeHtml(text) + '</span>';
+          cursor = token.index + text.length;
+        }
+        block.innerHTML = html + escapeHtml(source.slice(cursor));
+      });
+      document.querySelectorAll('code.language-shell').forEach(block => {
+        block.innerHTML = block.textContent.split('\n').map(line => {
+          const commentAt = line.indexOf('#');
+          const command = commentAt < 0 ? line : line.slice(0, commentAt);
+          const comment = commentAt < 0 ? '' : '<span class="tok-comment">' + escapeHtml(line.slice(commentAt)) + '</span>';
+          return escapeHtml(command).replace(/\b(\d+)\b/g, '<span class="tok-number">$1</span>') + comment;
+        }).join('\n');
+      });
+      document.querySelectorAll('code.language-log').forEach(block => {
+        block.innerHTML = escapeHtml(block.textContent).replace(/\b(AC_[A-Z_]+|COMMAND)\b/g, '<span class="tok-function">$1</span>').replace(/\b(match=1|result=0)\b/g, '<span class="tok-string">$1</span>');
+      });
+      const links = [...document.querySelectorAll('nav a')];
+      if ('IntersectionObserver' in globalThis) {
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            links.forEach(link => {
+              if (link.hash === '#' + entry.target.id) link.setAttribute('aria-current', 'location');
+              else link.removeAttribute('aria-current');
+            });
+          });
+        }, {rootMargin:'-5% 0px -70% 0px'});
+        document.querySelectorAll('section[id]').forEach(section => observer.observe(section));
+      }
+    })();
+  </script>
+</body>
+</html>

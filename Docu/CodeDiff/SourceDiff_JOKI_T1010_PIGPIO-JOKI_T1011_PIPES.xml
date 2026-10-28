@@ -1,0 +1,1674 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sourceDiffReport oldCommit="01d390397c929101a70a3fa37fd076e129ce6c9c" newTag="JOKI_T1011_PIPES" date="2026-10-25" newCommit="e69ebaf611f350fa7d7dff0cf68eec63d93d471e" oldTag="JOKI_T1010_PIGPIO" files="13" hunks="29" added="793" deleted="136" scope="*.c;*.h" project="RasPiAutomation" repository="I:\MyGitRepos\JoKiAutomation\RasPiAutomation">
+  <file path="AudioControl/AudioControl.c" added="434" id="f01" deleted="135" status="geaendert">
+    <hunk id="f01-h1" marker="M001" header="@@ -7,19 +7,63 @@" reason="Die Audio-Logdatei wird vor dem Schreiben groessenbegrenzt rotiert. So bleiben aktuelle Diagnosen verfuegbar, ohne dass wiederholte Mixeraufrufe die Logdatei unbegrenzt wachsen lassen. Konkrete Diffzeilen (Eingefuegt): static void AC_RotateLogIfNeeded(const char *logPath) | #include &lt;ctype.h&gt; | #include &lt;sys/file.h&gt;.">
+      <line kind="context" old="7" new="7">==============================================================================*/</line>
+      <line kind="context" old="8" new="8"></line>
+      <line kind="context" old="9" new="9">#include &lt;stdio.h&gt;</line>
+      <line kind="context" old="10" new="10">#include &lt;stdlib.h&gt;</line>
+      <line kind="context" old="11" new="11">#include &lt;string.h&gt;</line>
+      <line kind="add" new="12">#include &lt;ctype.h&gt;</line>
+      <line kind="context" old="12" new="13">#include &lt;errno.h&gt;</line>
+      <line kind="context" old="13" new="14">#include &lt;unistd.h&gt;</line>
+      <line kind="context" old="14" new="15">#include &lt;fcntl.h&gt;</line>
+      <line kind="add" new="16">#include &lt;sys/file.h&gt;</line>
+      <line kind="add" new="17">#include &lt;sys/stat.h&gt;</line>
+      <line kind="context" old="15" new="18">#include &lt;termios.h&gt;</line>
+      <line kind="add" new="19">#include &lt;stdarg.h&gt;</line>
+      <line kind="add" new="20">#include &lt;time.h&gt;</line>
+      <line kind="context" old="16" new="21">#include "AudioControl.h"</line>
+      <line kind="context" old="17" new="22">#include "AudioCommands.h"</line>
+      <line kind="add" new="23">#include "AudioControlValidation.h"</line>
+      <line kind="add" new="24">#include "AudioControlWrite.h"</line>
+      <line kind="context" old="18" new="25">#include "timer.h"</line>
+      <line kind="context" old="19" new="26">#include "system.h"</line>
+      <line kind="context" old="20" new="27"></line>
+      <line kind="add" new="28">#define AC_LOG_FILE "/home/pi/JokiAutomation/log/AudioControl.log"</line>
+      <line kind="add" new="29">#define AC_LOG_DIR "/home/pi/JokiAutomation/log"</line>
+      <line kind="add" new="30">#define AC_LOG_MAX_BYTES (5 * 1024 * 1024)</line>
+      <line kind="add" new="31">#define AC_VOLUME_RESPONSE_LENGTH 9</line>
+      <line kind="add" new="32">#define AC_VOLUME_RESPONSE_BUFFER_LENGTH (AC_VOLUME_RESPONSE_LENGTH + 1)</line>
+      <line kind="add" new="33">#define AC_VOLUME_MAX_ATTEMPTS 2</line>
+      <line kind="add" new="34">#define AC_PROFILE_SETTLE_US 100000</line>
+      <line kind="add" new="35"></line>
+      <line kind="add" new="36">static void AC_RotateLogIfNeeded(const char *logPath)</line>
+      <line kind="add" new="37">{</line>
+      <line kind="add" new="38">	struct stat st;</line>
+      <line kind="add" new="39">	char log1[256];</line>
+      <line kind="add" new="40">	char log2[256];</line>
+      <line kind="add" new="41"></line>
+      <line kind="add" new="42">	if (logPath == NULL)</line>
+      <line kind="add" new="43">	{</line>
+      <line kind="add" new="44">		return;</line>
+      <line kind="add" new="45">	}</line>
+      <line kind="add" new="46"></line>
+      <line kind="add" new="47">	if (stat(logPath, &amp;st) != 0)</line>
+      <line kind="add" new="48">	{</line>
+      <line kind="add" new="49">		return;</line>
+      <line kind="add" new="50">	}</line>
+      <line kind="add" new="51"></line>
+      <line kind="add" new="52">	if (st.st_size &lt; AC_LOG_MAX_BYTES)</line>
+      <line kind="add" new="53">	{</line>
+      <line kind="add" new="54">		return;</line>
+      <line kind="add" new="55">	}</line>
+      <line kind="add" new="56"></line>
+      <line kind="add" new="57">	snprintf(log1, sizeof(log1), "%s.1", logPath);</line>
+      <line kind="add" new="58">	snprintf(log2, sizeof(log2), "%s.2", logPath);</line>
+      <line kind="add" new="59"></line>
+      <line kind="add" new="60">	remove(log2);</line>
+      <line kind="add" new="61">	rename(log1, log2);</line>
+      <line kind="add" new="62">	rename(logPath, log1);</line>
+      <line kind="add" new="63">}</line>
+      <line kind="add" new="64"></line>
+      <line kind="context" old="21" new="65">int uart0_filestream = -1;</line>
+      <line kind="context" old="22" new="66">int streamlength = 0;</line>
+      <line kind="context" old="23" new="67">char versionString[]="                    ";</line>
+      <line kind="context" old="24" new="68">char testString[]="                    ";</line>
+      <line kind="context" old="25" new="69">int volumeRequest[4] = {0,0,0,0};  // requested profile volume</line>
+    </hunk>
+    <hunk id="f01-h2" marker="M002" header="@@ -27,10 +71,56 @@ int volumeState[4] = {0,0,0,0};    // volume state of all audio mix channels" reason="Die Audio-Logdatei wird vor dem Schreiben groessenbegrenzt rotiert. So bleiben aktuelle Diagnosen verfuegbar, ohne dass wiederholte Mixeraufrufe die Logdatei unbegrenzt wachsen lassen. Konkrete Diffzeilen (Eingefuegt): void AC_Log(const char *fmt, ...) | FILE *fp; | va_list args;.">
+      <line kind="context" old="27" new="71">int volumeSteps[4] = {0,0,0,0};    // volume steps to fade up/down</line>
+      <line kind="context" old="28" new="72"></line>
+      <line kind="context" old="29" new="73"></line>
+      <line kind="context" old="30" new="74">AC_Data aC_Data;</line>
+      <line kind="context" old="31" new="75"></line>
+      <line kind="add" new="76">void AC_Log(const char *fmt, ...)</line>
+      <line kind="add" new="77">{</line>
+      <line kind="add" new="78">	FILE *fp;</line>
+      <line kind="add" new="79">	va_list args;</line>
+      <line kind="add" new="80">	time_t now;</line>
+      <line kind="add" new="81">	struct tm tm_info;</line>
+      <line kind="add" new="82">	char timebuf[32];</line>
+      <line kind="add" new="83">	struct stat dirStat;</line>
+      <line kind="add" new="84"></line>
+      <line kind="add" new="85">	if (mkdir(AC_LOG_DIR, 0775) != 0 &amp;&amp; errno != EEXIST)</line>
+      <line kind="add" new="86">	{</line>
+      <line kind="add" new="87">		return;</line>
+      <line kind="add" new="88">	}</line>
+      <line kind="add" new="89">	if (stat(AC_LOG_DIR, &amp;dirStat) != 0 || !S_ISDIR(dirStat.st_mode) || chmod(AC_LOG_DIR, 0775) != 0)</line>
+      <line kind="add" new="90">	{</line>
+      <line kind="add" new="91">		return;</line>
+      <line kind="add" new="92">	}</line>
+      <line kind="add" new="93"></line>
+      <line kind="add" new="94">	AC_RotateLogIfNeeded(AC_LOG_FILE);</line>
+      <line kind="add" new="95"></line>
+      <line kind="add" new="96">	fp = fopen(AC_LOG_FILE, "a");</line>
+      <line kind="add" new="97">	if (fp == NULL)</line>
+      <line kind="add" new="98">	{</line>
+      <line kind="add" new="99">		return;</line>
+      <line kind="add" new="100">	}</line>
+      <line kind="add" new="101">	if (fchmod(fileno(fp), 0664) != 0)</line>
+      <line kind="add" new="102">	{</line>
+      <line kind="add" new="103">		fclose(fp);</line>
+      <line kind="add" new="104">		return;</line>
+      <line kind="add" new="105">	}</line>
+      <line kind="add" new="106"></line>
+      <line kind="add" new="107">	time(&amp;now);</line>
+      <line kind="add" new="108">	if (localtime_r(&amp;now, &amp;tm_info) != NULL)</line>
+      <line kind="add" new="109">	{</line>
+      <line kind="add" new="110">		strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", &amp;tm_info);</line>
+      <line kind="add" new="111">		fprintf(fp, "[%s] ", timebuf);</line>
+      <line kind="add" new="112">	}</line>
+      <line kind="add" new="113"></line>
+      <line kind="add" new="114">	va_start(args, fmt);</line>
+      <line kind="add" new="115">	vfprintf(fp, fmt, args);</line>
+      <line kind="add" new="116">	va_end(args);</line>
+      <line kind="add" new="117"></line>
+      <line kind="add" new="118">	fprintf(fp, "\n");</line>
+      <line kind="add" new="119">	fclose(fp);</line>
+      <line kind="add" new="120">}</line>
+      <line kind="add" new="121"></line>
+      <line kind="context" old="32" new="122">// write active audio channel into datfile</line>
+      <line kind="context" old="33" new="123">unsigned char AC_writeDatFile(void)</line>
+      <line kind="context" old="34" new="124">{</line>
+      <line kind="context" old="35" new="125">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="context" old="36" new="126">	FILE *write_ptr;</line>
+    </hunk>
+    <hunk id="f01-h3" marker="M003" header="@@ -88,19 +178,26 @@ unsigned char ACinit(void)" reason="Der Audiomixer-Zugriff wird mit flock exklusiv und nicht blockierend geschuetzt. Ein zweiter Prozess kann waehrend eines laufenden UART-Kommandos weder Antwortbytes abholen noch Profilbefehle dazwischen schreiben; der Lock-Fehler wird als Kommunikationsfehler behandelt. Konkrete Diffzeilen (Eingefuegt): if (flock(uart0_filestream, LOCK_EX | LOCK_NB) != 0) | if(uart0_filestream &lt; 0) | if (uart0_filestream &lt; 0). Konkrete Diffzeilen (Ersetzt/entfernt): if(uart0_filestream &lt;=0) | if (uart0_filestream == -1).">
+      <line kind="context" old="88" new="178">// open  audio control interface</line>
+      <line kind="context" old="89" new="179">unsigned char AC_open(void)</line>
+      <line kind="context" old="90" new="180">{</line>
+      <line kind="context" old="91" new="181">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="context" old="92" new="182"></line>
+      <line kind="del" old="93">	if(uart0_filestream &lt;=0)</line>
+      <line kind="add" new="183">	if(uart0_filestream &lt; 0)</line>
+      <line kind="context" old="94" new="184">	{</line>
+      <line kind="context" old="95" new="185">		uart0_filestream = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);</line>
+      <line kind="del" old="96">		if (uart0_filestream == -1)</line>
+      <line kind="add" new="186">		if (uart0_filestream &lt; 0)</line>
+      <line kind="context" old="97" new="187">		{</line>
+      <line kind="context" old="98" new="188">			result = AC_COM_FAILED;  // AC COM connection failure</line>
+      <line kind="context" old="99" new="189">		}</line>
+      <line kind="context" old="100" new="190">		else</line>
+      <line kind="context" old="101" new="191">		{</line>
+      <line kind="add" new="192">			if (flock(uart0_filestream, LOCK_EX | LOCK_NB) != 0)</line>
+      <line kind="add" new="193">			{</line>
+      <line kind="add" new="194">				close(uart0_filestream);</line>
+      <line kind="add" new="195">				uart0_filestream = -1;</line>
+      <line kind="add" new="196">				return AC_COM_FAILED;</line>
+      <line kind="add" new="197">			}</line>
+      <line kind="add" new="198"></line>
+      <line kind="context" old="102" new="199">			// configured based on https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/</line>
+      <line kind="context" old="103" new="200">			struct termios options;</line>
+      <line kind="context" old="104" new="201">			tcgetattr(uart0_filestream, &amp;options);</line>
+      <line kind="context" old="105" new="202">			options.c_cflag = B9600 | CS8 |CSTOPB| CLOCAL | CREAD;</line>
+      <line kind="context" old="106" new="203">			options.c_iflag = IGNPAR;</line>
+    </hunk>
+    <hunk id="f01-h4" marker="M004" header="@@ -113,71 +210,142 @@ unsigned char AC_open(void)" reason="Der UART-Write wird durch eine vollstaendige Schreibschleife ersetzt: Teilwrites werden fortgesetzt, EINTR wiederholt, Null-Write und echte Fehler schlagen fehl. AC_SUCCESS gilt erst, wenn alle angeforderten Bytes uebertragen sind. Konkrete Diffzeilen (Eingefuegt): static void AC_close(void) | AC_Log(&quot;AC_CLOSE_FAIL pid=%d errno=%d&quot;, getpid(), errno); | unsigned char result = AC_WriteAllWith(uart0_filestream, buffer, length,. Konkrete Diffzeilen (Ersetzt/entfernt): result |= AC_Profile(aC_Data.activeAudioProfile); // execute the teached profile | unsigned char result = AC_SUCCESS; | streamlength = write(uart0_filestream,buffer, length); //write buffer to COM Port.">
+      <line kind="context" old="113" new="210">		}</line>
+      <line kind="context" old="114" new="211">	}</line>
+      <line kind="context" old="115" new="212">    return(result);</line>
+      <line kind="context" old="116" new="213">}</line>
+      <line kind="context" old="117" new="214"></line>
+      <line kind="add" new="215">static void AC_close(void)</line>
+      <line kind="add" new="216">{</line>
+      <line kind="add" new="217">	if (uart0_filestream &gt;= 0)</line>
+      <line kind="add" new="218">	{</line>
+      <line kind="add" new="219">		if (close(uart0_filestream) != 0)</line>
+      <line kind="add" new="220">		{</line>
+      <line kind="add" new="221">			AC_Log("AC_CLOSE_FAIL pid=%d errno=%d", getpid(), errno);</line>
+      <line kind="add" new="222">		}</line>
+      <line kind="add" new="223">		uart0_filestream = -1;</line>
+      <line kind="add" new="224">	}</line>
+      <line kind="add" new="225">}</line>
+      <line kind="add" new="226"></line>
+      <line kind="add" new="227">static ptrdiff_t AC_SystemWrite(int fd, const char *buffer, size_t length)</line>
+      <line kind="add" new="228">{</line>
+      <line kind="add" new="229">	return (ptrdiff_t)write(fd, buffer, length);</line>
+      <line kind="add" new="230">}</line>
+      <line kind="add" new="231"></line>
+      <line kind="add" new="232">static unsigned char AC_writeAll(const char *buffer, size_t length)</line>
+      <line kind="add" new="233">{</line>
+      <line kind="add" new="234">	size_t written = 0;</line>
+      <line kind="add" new="235">	int errorNumber = 0;</line>
+      <line kind="add" new="236">	unsigned char result = AC_WriteAllWith(uart0_filestream, buffer, length,</line>
+      <line kind="add" new="237">		AC_SystemWrite, &amp;written, &amp;errorNumber);</line>
+      <line kind="add" new="238">	streamlength = (int)written;</line>
+      <line kind="add" new="239">	if (result == AC_SUCCESS)</line>
+      <line kind="add" new="240">	{</line>
+      <line kind="add" new="241">		AC_Log("AC_WRITE_OK requested=%zu written=%zu payload=%.*s", length, written,</line>
+      <line kind="add" new="242">			(int)length, buffer);</line>
+      <line kind="add" new="243">		return AC_SUCCESS;</line>
+      <line kind="add" new="244">	}</line>
+      <line kind="add" new="245">	AC_Log("AC_WRITE_FAIL requested=%zu written=%zu errno=%d payload=%.*s",</line>
+      <line kind="add" new="246">		length, written, errorNumber, (int)length, buffer);</line>
+      <line kind="add" new="247">	return result;</line>
+      <line kind="add" new="248">}</line>
+      <line kind="add" new="249"></line>
+      <line kind="context" old="118" new="250">// write bytestream to COM Port</line>
+      <line kind="context" old="119" new="251">unsigned char AC_write(char* buffer, int length)</line>
+      <line kind="context" old="120" new="252">{</line>
+      <line kind="del" old="121">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="del" old="122">    streamlength = write(uart0_filestream,buffer, length); //write buffer to COM Port</line>
+      <line kind="del" old="123">    printf("write  %s \n",buffer); //rvtest</line>
+      <line kind="del" old="124">    if(streamlength &lt; 0)</line>
+      <line kind="add" new="253">	if (buffer == NULL || length &lt; 0 || uart0_filestream &lt; 0)</line>
+      <line kind="context" old="125" new="254">	{</line>
+      <line kind="del" old="126">       result = AC_TX_FAILED;</line>
+      <line kind="add" new="255">		errno = uart0_filestream &lt; 0 ? EBADF : EINVAL;</line>
+      <line kind="add" new="256">		AC_Log("AC_WRITE_FAIL requested=%d written=0 errno=%d payload=%s",</line>
+      <line kind="add" new="257">			length, errno, buffer == NULL ? "&lt;null&gt;" : buffer);</line>
+      <line kind="add" new="258">		streamlength = 0;</line>
+      <line kind="add" new="259">		return AC_TX_FAILED;</line>
+      <line kind="context" old="127" new="260">    }</line>
+      <line kind="del" old="128">	return(result);</line>
+      <line kind="add" new="261">	return AC_writeAll(buffer, (size_t)length);</line>
+      <line kind="context" old="129" new="262">}</line>
+      <line kind="context" old="130" new="263"></line>
+      <line kind="context" old="131" new="264">// read bytestream from COM Port</line>
+      <line kind="context" old="132" new="265">unsigned char AC_read(char* buffer, int length)</line>
+      <line kind="context" old="133" new="266">{</line>
+      <line kind="context" old="134" new="267">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="context" old="135" new="268">	int bytes_read = 0;</line>
+      <line kind="context" old="136" new="269">	systemtimer timeoutTimer;</line>
+      <line kind="context" old="137" new="270">	streamlength = 0;</line>
+      <line kind="del" old="138">	memset(buffer,0,10);</line>
+      <line kind="add" new="271">	if (buffer == NULL || length &lt;= 0 || uart0_filestream &lt; 0)</line>
+      <line kind="add" new="272">	{</line>
+      <line kind="add" new="273">		return AC_RX_FAILED;</line>
+      <line kind="add" new="274">	}</line>
+      <line kind="add" new="275">	memset(buffer, 0, (size_t)length);</line>
+      <line kind="context" old="139" new="276">	startMeasurement(&amp;timeoutTimer); // start on signal timer</line>
+      <line kind="del" old="140">	while(streamlength &lt;9)</line>
+      <line kind="add" new="277">	while(streamlength &lt; length)</line>
+      <line kind="context" old="141" new="278">	{</line>
+      <line kind="del" old="142">		bytes_read = read(uart0_filestream,&amp;buffer[streamlength], length); //read buffer from COM Port</line>
+      <line kind="add" new="279">		bytes_read = (int)read(uart0_filestream, &amp;buffer[streamlength], (size_t)(length - streamlength));</line>
+      <line kind="context" old="143" new="280">		if(bytes_read &gt;0)</line>
+      <line kind="context" old="144" new="281">		{</line>
+      <line kind="context" old="145" new="282">			streamlength += bytes_read;</line>
+      <line kind="del" old="146">			length -= bytes_read;</line>
+      <line kind="add" new="283">			if (memchr(buffer, ')', (size_t)streamlength) != NULL)</line>
+      <line kind="add" new="284">			{</line>
+      <line kind="add" new="285">				break;</line>
+      <line kind="add" new="286">			}</line>
+      <line kind="add" new="287">		}</line>
+      <line kind="add" new="288">		else if (bytes_read &lt; 0 &amp;&amp; errno != EINTR)</line>
+      <line kind="add" new="289">		{</line>
+      <line kind="add" new="290">			result = AC_RX_FAILED;</line>
+      <line kind="add" new="291">			break;</line>
+      <line kind="context" old="147" new="292">		}</line>
+      <line kind="context" old="148" new="293">		if(isExpired(1000000,&amp;timeoutTimer)== 1)</line>
+      <line kind="context" old="149" new="294">		{</line>
+      <line kind="del" old="150">			result |= AC_RX_TIMEOUT;</line>
+      <line kind="add" new="295">			AC_Log("AC_read timeout: pid=%d errno=%d streamlength=%d", getpid(), errno, streamlength);</line>
+      <line kind="add" new="296">			if (streamlength == 0)</line>
+      <line kind="add" new="297">			{</line>
+      <line kind="add" new="298">				result = AC_RX_TIMEOUT;</line>
+      <line kind="add" new="299">			}</line>
+      <line kind="context" old="151" new="300">			break;</line>
+      <line kind="context" old="152" new="301">		}</line>
+      <line kind="context" old="153" new="302">	}</line>
+      <line kind="del" old="154">    printf("read   %s \n",buffer); //rvtest</line>
+      <line kind="del" old="155">	if(streamlength &lt; 0)</line>
+      <line kind="add" new="303">	if (result == AC_SUCCESS &amp;&amp; streamlength == 0)</line>
+      <line kind="context" old="156" new="304">	{</line>
+      <line kind="del" old="157">		result |= AC_RX_FAILED;</line>
+      <line kind="add" new="305">		result = AC_RX_TIMEOUT;</line>
+      <line kind="context" old="158" new="306">	}</line>
+      <line kind="add" new="307">	AC_Log("AC_READ bytes=%d payload=%.*s result=%u", streamlength, streamlength, buffer, result);</line>
+      <line kind="context" old="159" new="308">	return(result);</line>
+      <line kind="context" old="160" new="309">}</line>
+      <line kind="context" old="161" new="310"></line>
+      <line kind="context" old="162" new="311">unsigned char AC_Teach(int index)</line>
+      <line kind="context" old="163" new="312">{</line>
+      <line kind="context" old="164" new="313">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="context" old="165" new="314">	unsigned char tempDat = 0;</line>
+      <line kind="del" old="166">	aC_Data.activeAudioProfile = (unsigned char)((index &gt;&gt; 16) &amp; 0x0f); // index of audio profile</line>
+      <line kind="add" new="315">	unsigned char taughtProfile = (unsigned char)((index &gt;&gt; 16) &amp; 0x0f);</line>
+      <line kind="add" new="316">	if (taughtProfile &gt;= 10)</line>
+      <line kind="add" new="317">	{</line>
+      <line kind="add" new="318">		return AC_OUT_OF_RANGE;</line>
+      <line kind="add" new="319">	}</line>
+      <line kind="context" old="167" new="320">	tempDat = (unsigned char)((index &gt;&gt; 12) &amp; 0x0f);                    // audio channel 4</line>
+      <line kind="del" old="168">	aC_Data.audioProfiles[aC_Data.activeAudioProfile][3] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="add" new="321">	aC_Data.audioProfiles[taughtProfile][3] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="context" old="169" new="322">	tempDat = (unsigned char)((index &gt;&gt; 8) &amp; 0x0f);                     // audio channel 3</line>
+      <line kind="del" old="170">	aC_Data.audioProfiles[aC_Data.activeAudioProfile][2] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="add" new="323">	aC_Data.audioProfiles[taughtProfile][2] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="context" old="171" new="324">	tempDat = (unsigned char)((index &gt;&gt; 4) &amp; 0x0f);                     // audio channel 2</line>
+      <line kind="del" old="172">	aC_Data.audioProfiles[aC_Data.activeAudioProfile][1] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="add" new="325">	aC_Data.audioProfiles[taughtProfile][1] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="context" old="173" new="326">	tempDat = (unsigned char)(index &amp; 0x0f);                            // audio channel 1</line>
+      <line kind="del" old="174">	aC_Data.audioProfiles[aC_Data.activeAudioProfile][0] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="add" new="327">	aC_Data.audioProfiles[taughtProfile][0] = (unsigned char)(SYSTEM_map(tempDat,0,10, 0, 63));</line>
+      <line kind="context" old="175" new="328">	result = AC_writeDatFile(); // write teach data into binary file</line>
+      <line kind="del" old="176">	printf("Teachdata = 1= %d 2= %d 3= %d 4= %d\n",aC_Data.audioProfiles[aC_Data.activeAudioProfile][0],aC_Data.audioProfiles[aC_Data.activeAudioProfile][1],aC_Data.audioProfiles[aC_Data.activeAudioProfile][2],aC_Data.audioProfiles[aC_Data.activeAudioProfile][3]);//rvtest</line>
+      <line kind="del" old="177">	result |= AC_open(); // open COM Port</line>
+      <line kind="del" old="178">	result |= AC_Profile(aC_Data.activeAudioProfile); // execute the teached profile</line>
+      <line kind="add" new="329">	AC_Log("TEACH_DATA profile=%u values=%d,%d,%d,%d",</line>
+      <line kind="add" new="330">		taughtProfile,</line>
+      <line kind="add" new="331">		aC_Data.audioProfiles[taughtProfile][0],</line>
+      <line kind="add" new="332">		aC_Data.audioProfiles[taughtProfile][1],</line>
+      <line kind="add" new="333">		aC_Data.audioProfiles[taughtProfile][2],</line>
+      <line kind="add" new="334">		aC_Data.audioProfiles[taughtProfile][3]);</line>
+      <line kind="add" new="335">	if (result == AC_SUCCESS)</line>
+      <line kind="add" new="336">	{</line>
+      <line kind="add" new="337">		result = AC_open();</line>
+      <line kind="add" new="338">	}</line>
+      <line kind="add" new="339">	if (result == AC_SUCCESS)</line>
+      <line kind="add" new="340">	{</line>
+      <line kind="add" new="341">		result = AC_Profile(taughtProfile);</line>
+      <line kind="add" new="342">	}</line>
+      <line kind="add" new="343">	if (result == AC_SUCCESS)</line>
+      <line kind="add" new="344">	{</line>
+      <line kind="add" new="345">		result = AC_writeDatFile();</line>
+      <line kind="add" new="346">	}</line>
+      <line kind="context" old="179" new="347">	return(result);</line>
+      <line kind="context" old="180" new="348">}</line>
+      <line kind="context" old="181" new="349"></line>
+      <line kind="context" old="182" new="350">// read requested volume for profile</line>
+      <line kind="context" old="183" new="351">unsigned char AC_Request(unsigned char index)</line>
+    </hunk>
+    <hunk id="f01-h5" marker="M005" header="@@ -203,91 +371,130 @@ unsigned char AC_Request(unsigned char index)" reason="Profilindex und vier angeforderte Sollwerte werden als strukturierter Datensatz protokolliert. Damit ist im RasPi-Log sichtbar, welches Profil der Aufrufer tatsaechlich angefordert hat, bevor der Mixerzustand gelesen wird. Konkrete Diffzeilen (Eingefuegt): AC_Log(&quot;REQUESTED_PROFILE index=%u values=%d,%d,%d,%d&quot;, | AC_Log(&quot;AC_VOLUME_RESPONSE_INVALID expectedChannel=%d bytes=%d raw=%s reason=%s&quot;, | AC_ParseVolumeResponse(response, (size_t)streamlength, channel, volume, &amp;reason)). Konkrete Diffzeilen (Ersetzt/entfernt): unsigned char AC_GetVolume(void) | printf(&quot;Requested Profile data from index %d : 1= %d 2= %d 3= %d 4= %d\n&quot;,index,aC_Data.audioProfiles[index][0],aC_Data.audioProfile... | char * commandString = 0;.">
+      <line kind="context" old="203" new="371">		volumeRequest[3] = aC_Data.audioProfiles[index][3]; // audio channel 1</line>
+      <line kind="context" old="204" new="372">		if((volumeRequest[3] &lt; 0)||(volumeRequest[3] &gt; 63))    // plausibility check</line>
+      <line kind="context" old="205" new="373">		{</line>
+      <line kind="context" old="206" new="374">			volumeRequest[3] = 0;</line>
+      <line kind="context" old="207" new="375">		}</line>
+      <line kind="del" old="208">		printf("Requested Profile data from index %d : 1= %d 2= %d 3= %d 4= %d\n",index,aC_Data.audioProfiles[index][0],aC_Data.audioProfiles[index][1],aC_Data.audioProfiles[index][2],aC_Data.audioProfiles[index][3]);//rvtest</line>
+      <line kind="add" new="376">		AC_Log("REQUESTED_PROFILE index=%u values=%d,%d,%d,%d",</line>
+      <line kind="add" new="377">			index,</line>
+      <line kind="add" new="378">			aC_Data.audioProfiles[index][0],</line>
+      <line kind="add" new="379">			aC_Data.audioProfiles[index][1],</line>
+      <line kind="add" new="380">			aC_Data.audioProfiles[index][2],</line>
+      <line kind="add" new="381">			aC_Data.audioProfiles[index][3]);</line>
+      <line kind="context" old="209" new="382">	}</line>
+      <line kind="context" old="210" new="383">	else</line>
+      <line kind="context" old="211" new="384">	{</line>
+      <line kind="context" old="212" new="385">		result = AC_OUT_OF_RANGE;</line>
+      <line kind="context" old="213" new="386">	}</line>
+      <line kind="context" old="214" new="387">	return(result);</line>
+      <line kind="context" old="215" new="388">}</line>
+      <line kind="context" old="216" new="389"></line>
+      <line kind="del" old="217">// get volume state from audio mix</line>
+      <line kind="del" old="218">unsigned char AC_GetVolume(void)</line>
+      <line kind="add" new="390">static void AC_LogInvalidVolumeResponse(int channel, const char *response, int responseLength,</line>
+      <line kind="add" new="391">		const char *reason)</line>
+      <line kind="context" old="219" new="392">{</line>
+      <line kind="del" old="220">	char * commandString = 0;</line>
+      <line kind="del" old="221">	int commandlength = 0;</line>
+      <line kind="del" old="222">	char volString[]="           ";</line>
+      <line kind="add" new="393">	char escaped[AC_VOLUME_RESPONSE_BUFFER_LENGTH * 4 + 1];</line>
+      <line kind="add" new="394">	size_t output = 0;</line>
+      <line kind="add" new="395">	for (int i = 0; i &lt; responseLength &amp;&amp; output + 1 &lt; sizeof(escaped); ++i)</line>
+      <line kind="add" new="396">	{</line>
+      <line kind="add" new="397">		unsigned char value = (unsigned char)response[i];</line>
+      <line kind="add" new="398">		if (isprint(value) &amp;&amp; value != '\\')</line>
+      <line kind="add" new="399">		{</line>
+      <line kind="add" new="400">			escaped[output++] = (char)value;</line>
+      <line kind="add" new="401">		}</line>
+      <line kind="add" new="402">		else if (output + 4 &lt; sizeof(escaped))</line>
+      <line kind="add" new="403">		{</line>
+      <line kind="add" new="404">			int written = snprintf(&amp;escaped[output], sizeof(escaped) - output, "\\x%02X", value);</line>
+      <line kind="add" new="405">			if (written &gt; 0)</line>
+      <line kind="add" new="406">			{</line>
+      <line kind="add" new="407">				output += (size_t)written;</line>
+      <line kind="add" new="408">			}</line>
+      <line kind="add" new="409">		}</line>
+      <line kind="add" new="410">	}</line>
+      <line kind="add" new="411">	escaped[output] = '\0';</line>
+      <line kind="add" new="412">	AC_Log("AC_VOLUME_RESPONSE_INVALID expectedChannel=%d bytes=%d raw=%s reason=%s",</line>
+      <line kind="add" new="413">		channel, responseLength, escaped, reason);</line>
+      <line kind="add" new="414">}</line>
+      <line kind="add" new="415"></line>
+      <line kind="add" new="416">static unsigned char AC_GetVolumeChannel(int channel, int *volume, int maxAttempts)</line>
+      <line kind="add" new="417">{</line>
+      <line kind="add" new="418">	char response[AC_VOLUME_RESPONSE_BUFFER_LENGTH];</line>
+      <line kind="add" new="419">	char *command;</line>
+      <line kind="add" new="420">	int commandLength;</line>
+      <line kind="context" old="223" new="421">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="add" new="422">	const char *reason = NULL;</line>
+      <line kind="context" old="224" new="423"></line>
+      <line kind="del" old="225">	// read audiomix channel 1 volume</line>
+      <line kind="del" old="226">	commandString = &amp;VOL1[0];    // get volume channel 1</line>
+      <line kind="del" old="227">	commandlength = sizeof(VOL1);</line>
+      <line kind="del" old="228">	result |=  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="229">	wait(30000);</line>
+      <line kind="del" old="230">    result |=  AC_read(&amp;volString[0],9);</line>
+      <line kind="del" old="231"></line>
+      <line kind="del" old="232">    if(result != AC_SUCCESS) // timeout occured, send reset and try once more</line>
+      <line kind="del" old="233">    {</line>
+      <line kind="del" old="234">    	commandString = &amp;RESET[0];    // reset audiomix</line>
+      <line kind="del" old="235">    	commandlength = sizeof(RESET);</line>
+      <line kind="del" old="236">    	result =  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="237">    	wait(30000);</line>
+      <line kind="del" old="238">    	// read audiomix channel 1 volume</line>
+      <line kind="del" old="239">    	commandString = &amp;VOL1[0];    // get volume channel 1</line>
+      <line kind="del" old="240">    	commandlength = sizeof(VOL1);</line>
+      <line kind="del" old="241">    	result |=  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="242">    	wait(30000);</line>
+      <line kind="del" old="243">        result |=  AC_read(&amp;volString[0],9);</line>
+      <line kind="del" old="244">    }</line>
+      <line kind="del" old="245">    volString[8] = 0;</line>
+      <line kind="del" old="246">    volumeState[0] = atoi(&amp;volString[6]);</line>
+      <line kind="del" old="247">    if((volumeState[0] &gt; 63)||(volumeState[0] &lt; 0)) // range check</line>
+      <line kind="del" old="248">    {</line>
+      <line kind="del" old="249">      volumeState[0] = 0;</line>
+      <line kind="del" old="250">    }</line>
+      <line kind="del" old="251">	// read audiomix channel 2 volume</line>
+      <line kind="del" old="252">	commandString = &amp;VOL2[0];    // get volume channel 2</line>
+      <line kind="del" old="253">	commandlength = sizeof(VOL2);</line>
+      <line kind="del" old="254">	result |=  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="255">	wait(30000);</line>
+      <line kind="del" old="256">    result |=  AC_read(&amp;volString[0],9);</line>
+      <line kind="del" old="257">    volString[8] = 0;</line>
+      <line kind="del" old="258">    volumeState[1] = atoi(&amp;volString[6]);</line>
+      <line kind="del" old="259">    if((volumeState[1] &gt; 63)||(volumeState[1] &lt; 0)) // range check</line>
+      <line kind="del" old="260">    {</line>
+      <line kind="del" old="261">      volumeState[1] = 0;</line>
+      <line kind="del" old="262">    }</line>
+      <line kind="del" old="263">	// read audiomix channel 3 volume</line>
+      <line kind="del" old="264">	commandString = &amp;VOL3[0];    // get volume channel 3</line>
+      <line kind="del" old="265">	commandlength = sizeof(VOL3);</line>
+      <line kind="del" old="266">	result |=  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="267">	wait(30000);</line>
+      <line kind="del" old="268">    result |=  AC_read(&amp;volString[0],9);</line>
+      <line kind="del" old="269">    volString[8] = 0;</line>
+      <line kind="del" old="270">    volumeState[2] = atoi(&amp;volString[6]);</line>
+      <line kind="del" old="271">    if((volumeState[2] &gt; 63)||(volumeState[2] &lt; 0)) // range check</line>
+      <line kind="del" old="272">    {</line>
+      <line kind="del" old="273">      volumeState[2] = 0;</line>
+      <line kind="del" old="274">    }</line>
+      <line kind="del" old="275">	// read audiomix channel 4 volume</line>
+      <line kind="del" old="276">	commandString = &amp;VOL4[0];    // get volume channel 4</line>
+      <line kind="del" old="277">	commandlength = sizeof(VOL4);</line>
+      <line kind="del" old="278">	result |=  AC_write(&amp;commandString[0],commandlength);  // send command sequence to Audiomix</line>
+      <line kind="del" old="279">	wait(30000);</line>
+      <line kind="del" old="280">    result |=  AC_read(&amp;volString[0],9);</line>
+      <line kind="del" old="281">    volString[8] = 0;</line>
+      <line kind="del" old="282">    volumeState[3] = atoi(&amp;volString[6]);</line>
+      <line kind="del" old="283">    if((volumeState[3] &gt; 63)||(volumeState[3] &lt; 0)) // range check</line>
+      <line kind="del" old="284">    {</line>
+      <line kind="del" old="285">      volumeState[3] = 0;</line>
+      <line kind="del" old="286">    }</line>
+      <line kind="del" old="287">	printf("GetVolume = 1= %d 2= %d 3= %d 4= %d\n",volumeState[0],volumeState[1],volumeState[2],volumeState[3]);//rvtest</line>
+      <line kind="del" old="288">	return(result);</line>
+      <line kind="add" new="424">	switch (channel)</line>
+      <line kind="add" new="425">	{</line>
+      <line kind="add" new="426">		case 1: command = VOL1; commandLength = sizeof(VOL1); break;</line>
+      <line kind="add" new="427">		case 2: command = VOL2; commandLength = sizeof(VOL2); break;</line>
+      <line kind="add" new="428">		case 3: command = VOL3; commandLength = sizeof(VOL3); break;</line>
+      <line kind="add" new="429">		case 4: command = VOL4; commandLength = sizeof(VOL4); break;</line>
+      <line kind="add" new="430">		default: return AC_OUT_OF_RANGE;</line>
+      <line kind="add" new="431">	}</line>
+      <line kind="add" new="432"></line>
+      <line kind="add" new="433">	for (int attempt = 1; attempt &lt;= maxAttempts; ++attempt)</line>
+      <line kind="add" new="434">	{</line>
+      <line kind="add" new="435">		memset(response, 0, sizeof(response));</line>
+      <line kind="add" new="436">		if (tcflush(uart0_filestream, TCIFLUSH) != 0)</line>
+      <line kind="add" new="437">		{</line>
+      <line kind="add" new="438">			return AC_RX_FAILED;</line>
+      <line kind="add" new="439">		}</line>
+      <line kind="add" new="440">		result = AC_write(command, commandLength);</line>
+      <line kind="add" new="441">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="442">		{</line>
+      <line kind="add" new="443">			return result;</line>
+      <line kind="add" new="444">		}</line>
+      <line kind="add" new="445">		wait(30000);</line>
+      <line kind="add" new="446">		result = AC_read(response, sizeof(response));</line>
+      <line kind="add" new="447">		if (result == AC_SUCCESS &amp;&amp;</line>
+      <line kind="add" new="448">			AC_ParseVolumeResponse(response, (size_t)streamlength, channel, volume, &amp;reason))</line>
+      <line kind="add" new="449">		{</line>
+      <line kind="add" new="450">			AC_Log("AC_VOLUME_RESPONSE_OK channel=%d value=%d raw=%.*s",</line>
+      <line kind="add" new="451">				channel, *volume, streamlength, response);</line>
+      <line kind="add" new="452">			return AC_SUCCESS;</line>
+      <line kind="add" new="453">		}</line>
+      <line kind="add" new="454">		if (result == AC_SUCCESS)</line>
+      <line kind="add" new="455">		{</line>
+      <line kind="add" new="456">			AC_LogInvalidVolumeResponse(channel, response, streamlength, reason);</line>
+      <line kind="add" new="457">			result = AC_INVALID_RESPONSE;</line>
+      <line kind="add" new="458">		}</line>
+      <line kind="add" new="459">		else</line>
+      <line kind="add" new="460">		{</line>
+      <line kind="add" new="461">			AC_LogInvalidVolumeResponse(channel, response, streamlength,</line>
+      <line kind="add" new="462">				result == AC_RX_TIMEOUT ? "incomplete response" : "receive failure");</line>
+      <line kind="add" new="463">		}</line>
+      <line kind="add" new="464">		if (result == AC_RX_FAILED)</line>
+      <line kind="add" new="465">		{</line>
+      <line kind="add" new="466">			return result;</line>
+      <line kind="add" new="467">		}</line>
+      <line kind="add" new="468">		if (attempt &lt; maxAttempts)</line>
+      <line kind="add" new="469">		{</line>
+      <line kind="add" new="470">			AC_Log("AC_VOLUME_RETRY pid=%d channel=%d attempt=%d result=%u",</line>
+      <line kind="add" new="471">				getpid(), channel, attempt + 1, result);</line>
+      <line kind="add" new="472">		}</line>
+      <line kind="add" new="473">	}</line>
+      <line kind="add" new="474">	return result;</line>
+      <line kind="add" new="475">}</line>
+      <line kind="add" new="476"></line>
+      <line kind="add" new="477">// get volume state from all four audio mix channels</line>
+      <line kind="add" new="478">unsigned char AC_GetVolume(void)</line>
+      <line kind="add" new="479">{</line>
+      <line kind="add" new="480">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="add" new="481">	for (int channel = 1; channel &lt;= 4; ++channel)</line>
+      <line kind="add" new="482">	{</line>
+      <line kind="add" new="483">		int value = 0;</line>
+      <line kind="add" new="484">		result = AC_GetVolumeChannel(channel, &amp;value, AC_VOLUME_MAX_ATTEMPTS);</line>
+      <line kind="add" new="485">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="486">		{</line>
+      <line kind="add" new="487">			return result;</line>
+      <line kind="add" new="488">		}</line>
+      <line kind="add" new="489">		volumeState[channel - 1] = value;</line>
+      <line kind="add" new="490">		AC_Log("AC_GetVolume CH%d=%d", channel, value);</line>
+      <line kind="add" new="491">	}</line>
+      <line kind="add" new="492">	AC_Log("GET_VOLUME profile=%u state=%d,%d,%d,%d",</line>
+      <line kind="add" new="493">		aC_Data.activeAudioProfile,</line>
+      <line kind="add" new="494">		volumeState[0], volumeState[1], volumeState[2], volumeState[3]);</line>
+      <line kind="add" new="495">	return AC_SUCCESS;</line>
+      <line kind="context" old="289" new="496">}</line>
+      <line kind="context" old="290" new="497"></line>
+      <line kind="context" old="291" new="498">// step audio mix to new profile volumes</line>
+      <line kind="context" old="292" new="499">unsigned char AC_Control(void)</line>
+      <line kind="context" old="293" new="500">{</line>
+    </hunk>
+    <hunk id="f01-h6" marker="M006" header="@@ -299,11 +506,11 @@ unsigned char AC_Control(void)" reason="AC_Control sendet jeden Kanal-Fadeschritt nur, solange der vorangegangene UART-Write erfolgreich war. Nach einem Fehler wird die Fade-Schleife beendet; weitere Kanal-Kommandos koennen den urspruenglichen Fehler nicht ueberdecken. Konkrete Diffzeilen (Eingefuegt): if(result == AC_SUCCESS &amp;&amp; volumeSteps[0] != volumeRequest[0]). Konkrete Diffzeilen (Ersetzt/entfernt): if(volumeSteps[0] != volumeRequest[0]).">
+      <line kind="context" old="299" new="506"></line>
+      <line kind="context" old="300" new="507">	startMeasurement(&amp;timeoutTimer); // start timeout timer</line>
+      <line kind="context" old="301" new="508">	do</line>
+      <line kind="context" old="302" new="509">	{</line>
+      <line kind="context" old="303" new="510">		profileFade = 0;</line>
+      <line kind="del" old="304">		if(volumeSteps[0] != volumeRequest[0])</line>
+      <line kind="add" new="511">		if(result == AC_SUCCESS &amp;&amp; volumeSteps[0] != volumeRequest[0])</line>
+      <line kind="context" old="305" new="512">		{</line>
+      <line kind="context" old="306" new="513">			if((volumeSteps[0] &gt; volumeRequest[0])&amp;&amp;(volumeSteps[0] &gt;0))</line>
+      <line kind="context" old="307" new="514">			{</line>
+      <line kind="context" old="308" new="515">				volumeSteps[0]--;</line>
+      <line kind="context" old="309" new="516">			}</line>
+    </hunk>
+    <hunk id="f01-h7" marker="M007" header="@@ -315,17 +522,17 @@ unsigned char AC_Control(void)" reason="AC_Control sendet jeden Kanal-Fadeschritt nur, solange der vorangegangene UART-Write erfolgreich war. Nach einem Fehler wird die Fade-Schleife beendet; weitere Kanal-Kommandos koennen den urspruenglichen Fehler nicht ueberdecken. Konkrete Diffzeilen (Eingefuegt): result = AC_write(&amp;commandString[0],commandlength); | if(result == AC_SUCCESS &amp;&amp; volumeSteps[1] != volumeRequest[1]). Konkrete Diffzeilen (Ersetzt/entfernt): result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix | if(volumeSteps[1] != volumeRequest[1]).">
+      <line kind="context" old="315" new="522">			{</line>
+      <line kind="context" old="316" new="523">				volumeRequest[0] = volumeSteps[0];</line>
+      <line kind="context" old="317" new="524">			}</line>
+      <line kind="context" old="318" new="525">			commandString[7] = '1';</line>
+      <line kind="context" old="319" new="526">			sprintf(&amp;commandString[12],"%02d)",volumeSteps[0]);</line>
+      <line kind="del" old="320">			result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix</line>
+      <line kind="add" new="527">			result = AC_write(&amp;commandString[0],commandlength);</line>
+      <line kind="context" old="321" new="528">			profileFade |=1;</line>
+      <line kind="context" old="322" new="529">			wait(30000); //wait 30 ms</line>
+      <line kind="context" old="323" new="530">			commandString[7] = 'x';</line>
+      <line kind="context" old="324" new="531">		}</line>
+      <line kind="context" old="325" new="532"></line>
+      <line kind="del" old="326">		if(volumeSteps[1] != volumeRequest[1])</line>
+      <line kind="add" new="533">		if(result == AC_SUCCESS &amp;&amp; volumeSteps[1] != volumeRequest[1])</line>
+      <line kind="context" old="327" new="534">		{</line>
+      <line kind="context" old="328" new="535">			if((volumeSteps[1] &gt; volumeRequest[1])&amp;&amp;(volumeSteps[1] &gt;0))</line>
+      <line kind="context" old="329" new="536">			{</line>
+      <line kind="context" old="330" new="537">				volumeSteps[1]--;</line>
+      <line kind="context" old="331" new="538">			}</line>
+    </hunk>
+    <hunk id="f01-h8" marker="M008" header="@@ -337,17 +544,17 @@ unsigned char AC_Control(void)" reason="AC_Control sendet jeden Kanal-Fadeschritt nur, solange der vorangegangene UART-Write erfolgreich war. Nach einem Fehler wird die Fade-Schleife beendet; weitere Kanal-Kommandos koennen den urspruenglichen Fehler nicht ueberdecken. Konkrete Diffzeilen (Eingefuegt): result = AC_write(&amp;commandString[0],commandlength); | if(result == AC_SUCCESS &amp;&amp; volumeSteps[2] != volumeRequest[2]). Konkrete Diffzeilen (Ersetzt/entfernt): result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix | if(volumeSteps[2] != volumeRequest[2]).">
+      <line kind="context" old="337" new="544">			{</line>
+      <line kind="context" old="338" new="545">				volumeRequest[1] = volumeSteps[1];</line>
+      <line kind="context" old="339" new="546">			}</line>
+      <line kind="context" old="340" new="547">			commandString[8] = '2';</line>
+      <line kind="context" old="341" new="548">			sprintf(&amp;commandString[12],"%02d)",volumeSteps[1]);</line>
+      <line kind="del" old="342">			result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix</line>
+      <line kind="add" new="549">			result = AC_write(&amp;commandString[0],commandlength);</line>
+      <line kind="context" old="343" new="550">			profileFade |=1;</line>
+      <line kind="context" old="344" new="551">			wait(30000); //wait 30 ms</line>
+      <line kind="context" old="345" new="552">			commandString[8] = 'x';</line>
+      <line kind="context" old="346" new="553">		}</line>
+      <line kind="context" old="347" new="554"></line>
+      <line kind="del" old="348">		if(volumeSteps[2] != volumeRequest[2])</line>
+      <line kind="add" new="555">		if(result == AC_SUCCESS &amp;&amp; volumeSteps[2] != volumeRequest[2])</line>
+      <line kind="context" old="349" new="556">		{</line>
+      <line kind="context" old="350" new="557">			if((volumeSteps[2] &gt; volumeRequest[2])&amp;&amp;(volumeSteps[2] &gt;0))</line>
+      <line kind="context" old="351" new="558">			{</line>
+      <line kind="context" old="352" new="559">				volumeSteps[2]--;</line>
+      <line kind="context" old="353" new="560">			}</line>
+    </hunk>
+    <hunk id="f01-h9" marker="M009" header="@@ -360,17 +567,17 @@ unsigned char AC_Control(void)" reason="AC_Control sendet jeden Kanal-Fadeschritt nur, solange der vorangegangene UART-Write erfolgreich war. Nach einem Fehler wird die Fade-Schleife beendet; weitere Kanal-Kommandos koennen den urspruenglichen Fehler nicht ueberdecken. Konkrete Diffzeilen (Eingefuegt): result = AC_write(&amp;commandString[0],commandlength); | if(result == AC_SUCCESS &amp;&amp; volumeSteps[3] != volumeRequest[3]). Konkrete Diffzeilen (Ersetzt/entfernt): result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix | if(volumeSteps[3] != volumeRequest[3]).">
+      <line kind="context" old="360" new="567">				volumeRequest[2] = volumeSteps[2];</line>
+      <line kind="context" old="361" new="568">			}</line>
+      <line kind="context" old="362" new="569"></line>
+      <line kind="context" old="363" new="570">			commandString[9] = '3';</line>
+      <line kind="context" old="364" new="571">			sprintf(&amp;commandString[12],"%02d)",volumeSteps[2]);</line>
+      <line kind="del" old="365">			result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix</line>
+      <line kind="add" new="572">			result = AC_write(&amp;commandString[0],commandlength);</line>
+      <line kind="context" old="366" new="573">			profileFade |=1;</line>
+      <line kind="context" old="367" new="574">			wait(30000); //wait 30 ms</line>
+      <line kind="context" old="368" new="575">			commandString[9] = 'x';</line>
+      <line kind="context" old="369" new="576">		}</line>
+      <line kind="context" old="370" new="577"></line>
+      <line kind="del" old="371">		if(volumeSteps[3] != volumeRequest[3])</line>
+      <line kind="add" new="578">		if(result == AC_SUCCESS &amp;&amp; volumeSteps[3] != volumeRequest[3])</line>
+      <line kind="context" old="372" new="579">		{</line>
+      <line kind="context" old="373" new="580">			if((volumeSteps[3] &gt; volumeRequest[3])&amp;&amp;(volumeSteps[3] &gt;0))</line>
+      <line kind="context" old="374" new="581">			{</line>
+      <line kind="context" old="375" new="582">				volumeSteps[3]--;</line>
+      <line kind="context" old="376" new="583">			}</line>
+    </hunk>
+    <hunk id="f01-h10" marker="M010" header="@@ -383,56 +590,146 @@ unsigned char AC_Control(void)" reason="AC_Profile protokolliert Anforderung, Vorher-/Nachher-Ruecklesung und Verifikation getrennt. Erfolg und aktives Profil werden erst nach dem Vierkanal-Soll-Ist-Abgleich gesetzt; die Abnahme belegt einen dokumentierten Profil-2-Lauf, nicht alle Profile. Konkrete Diffzeilen (Eingefuegt): AC_Log(&quot;AC_PROFILE_BEGIN pid=%d profile=%u attempt=1 requested=%s actual=unavailable result=%u&quot;, | AC_Log(&quot;AC_PROFILE_REQUEST pid=%d profile=%u attempt=1 requested=%s actual=unavailable result=%u&quot;, | AC_Log(&quot;AC_PROFILE_READ_BEFORE pid=%d profile=%u attempt=%d requested=%s actual=pending result=%u&quot;,. Konkrete Diffzeilen (Ersetzt/entfernt): result|= AC_Control();    // step audio mix to new profile volumes | result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix | result |= AC_RX_TIMEOUT;.">
+      <line kind="context" old="383" new="590">				volumeRequest[3] = volumeSteps[3];</line>
+      <line kind="context" old="384" new="591">			}</line>
+      <line kind="context" old="385" new="592"></line>
+      <line kind="context" old="386" new="593">			commandString[10] = '4';</line>
+      <line kind="context" old="387" new="594">			sprintf(&amp;commandString[12],"%02d)",volumeSteps[3]);</line>
+      <line kind="del" old="388">			result |=  AC_write(&amp;commandString[0],commandlength);  // send step fade up to audiomix</line>
+      <line kind="add" new="595">			result = AC_write(&amp;commandString[0],commandlength);</line>
+      <line kind="context" old="389" new="596">			profileFade |=1;</line>
+      <line kind="context" old="390" new="597">			wait(30000); //wait 30 ms</line>
+      <line kind="context" old="391" new="598">			commandString[10] = 'x';</line>
+      <line kind="context" old="392" new="599">		}</line>
+      <line kind="add" new="600">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="601">		{</line>
+      <line kind="add" new="602">			break;</line>
+      <line kind="add" new="603">		}</line>
+      <line kind="context" old="393" new="604">		if(isExpired(20000000,&amp;timeoutTimer)== 1)</line>
+      <line kind="context" old="394" new="605">		{</line>
+      <line kind="del" old="395">			result |= AC_RX_TIMEOUT;</line>
+      <line kind="add" new="606">			result = AC_RX_TIMEOUT;</line>
+      <line kind="context" old="396" new="607">			break;</line>
+      <line kind="context" old="397" new="608">		}</line>
+      <line kind="context" old="398" new="609">	}while(profileFade &gt;0);</line>
+      <line kind="context" old="399" new="610">	return(result);</line>
+      <line kind="context" old="400" new="611">}</line>
+      <line kind="context" old="401" new="612"></line>
+      <line kind="del" old="402">// execute audiomix profile</line>
+      <line kind="add" new="613">static void AC_FormatVolumeValues(const int values[4], char *buffer, size_t bufferLength)</line>
+      <line kind="add" new="614">{</line>
+      <line kind="add" new="615">	snprintf(buffer, bufferLength, "%d,%d,%d,%d", values[0], values[1], values[2], values[3]);</line>
+      <line kind="add" new="616">}</line>
+      <line kind="add" new="617"></line>
+      <line kind="add" new="618">// execute and verify an audio mix profile</line>
+      <line kind="context" old="403" new="619">unsigned char AC_Profile(unsigned char index)</line>
+      <line kind="context" old="404" new="620">{</line>
+      <line kind="context" old="405" new="621">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="del" old="406">	//if(index == 0)</line>
+      <line kind="del" old="407">	//{</line>
+      <line kind="del" old="408">	//	result |=  AC_write(&amp;RESET[0],sizeof(RESET));  // send reset command to Audiomix</line>
+      <line kind="del" old="409">	//}</line>
+      <line kind="del" old="410"></line>
+      <line kind="del" old="411">	//if(result == AC_SUCCESS)</line>
+      <line kind="del" old="412">	//{</line>
+      <line kind="del" old="413">	result|= AC_Request(index);    // read requested volume for profile</line>
+      <line kind="del" old="414">	//}</line>
+      <line kind="del" old="415">	if(result == AC_SUCCESS)</line>
+      <line kind="add" new="622">	int requested[4] = {0, 0, 0, 0};</line>
+      <line kind="add" new="623">	int actual[4] = {0, 0, 0, 0};</line>
+      <line kind="add" new="624">	char requestedText[48];</line>
+      <line kind="add" new="625">	char actualText[48];</line>
+      <line kind="add" new="626">	int actualAvailable = 0;</line>
+      <line kind="add" new="627">	int attempt = 1;</line>
+      <line kind="add" new="628"></line>
+      <line kind="add" new="629">	result = AC_Request(index);</line>
+      <line kind="add" new="630">	memcpy(requested, volumeRequest, sizeof(requested));</line>
+      <line kind="add" new="631">	AC_FormatVolumeValues(requested, requestedText, sizeof(requestedText));</line>
+      <line kind="add" new="632">	AC_Log("AC_PROFILE_BEGIN pid=%d profile=%u attempt=1 requested=%s actual=unavailable result=%u",</line>
+      <line kind="add" new="633">		getpid(), index, requestedText, result);</line>
+      <line kind="add" new="634">	AC_Log("AC_PROFILE_REQUEST pid=%d profile=%u attempt=1 requested=%s actual=unavailable result=%u",</line>
+      <line kind="add" new="635">		getpid(), index, requestedText, result);</line>
+      <line kind="add" new="636">	if (result == AC_SUCCESS &amp;&amp; uart0_filestream &lt; 0)</line>
+      <line kind="context" old="416" new="637">	{</line>
+      <line kind="del" old="417">	    result|= AC_GetVolume();  // get volume state from audio mix</line>
+      <line kind="add" new="638">		result = AC_COM_FAILED;</line>
+      <line kind="context" old="418" new="639">	}</line>
+      <line kind="del" old="419">	if(result == AC_SUCCESS)</line>
+      <line kind="add" new="640">	if (result != AC_SUCCESS)</line>
+      <line kind="context" old="420" new="641">	{</line>
+      <line kind="del" old="421">	    volumeSteps[0] = volumeState[0];   // set steps to fade up / down for channel 1</line>
+      <line kind="del" old="422">	    volumeSteps[1] = volumeState[1];   // set steps to fade up / down for channel 2</line>
+      <line kind="del" old="423">	    volumeSteps[2] = volumeState[2];   // set steps to fade up / down for channel 3</line>
+      <line kind="del" old="424">	    volumeSteps[3] = volumeState[3];   // set steps to fade up / down for channel 4</line>
+      <line kind="del" old="425">		result|= AC_Control();    // step audio mix to new profile volumes</line>
+      <line kind="add" new="642">		goto profile_done;</line>
+      <line kind="context" old="426" new="643">	}</line>
+      <line kind="context" old="427" new="644"></line>
+      <line kind="del" old="428">	if(uart0_filestream &gt;0)</line>
+      <line kind="add" new="645">	for (attempt = 1; attempt &lt;= AC_PROFILE_MAX_ATTEMPTS; ++attempt)</line>
+      <line kind="context" old="429" new="646">	{</line>
+      <line kind="del" old="430">		uart0_filestream = close(uart0_filestream); // close COM Port</line>
+      <line kind="add" new="647">		actualAvailable = 0;</line>
+      <line kind="add" new="648">		AC_Log("AC_PROFILE_READ_BEFORE pid=%d profile=%u attempt=%d requested=%s actual=pending result=%u",</line>
+      <line kind="add" new="649">			getpid(), index, attempt, requestedText, AC_SUCCESS);</line>
+      <line kind="add" new="650">		result = AC_GetVolume();</line>
+      <line kind="add" new="651">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="652">		{</line>
+      <line kind="add" new="653">			AC_Log("AC_PROFILE_READ_BEFORE pid=%d profile=%u attempt=%d requested=%s actual=unavailable result=%u",</line>
+      <line kind="add" new="654">				getpid(), index, attempt, requestedText, result);</line>
+      <line kind="add" new="655">			break;</line>
+      <line kind="add" new="656">		}</line>
+      <line kind="add" new="657">		memcpy(actual, volumeState, sizeof(actual));</line>
+      <line kind="add" new="658">		actualAvailable = 1;</line>
+      <line kind="add" new="659">		AC_FormatVolumeValues(actual, actualText, sizeof(actualText));</line>
+      <line kind="add" new="660">		AC_Log("AC_PROFILE_READ_BEFORE pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="661">			getpid(), index, attempt, requestedText, actualText, AC_SUCCESS);</line>
+      <line kind="add" new="662">		memcpy(volumeSteps, actual, sizeof(volumeSteps));</line>
+      <line kind="add" new="663"></line>
+      <line kind="add" new="664">		AC_Log("AC_PROFILE_WRITE_BEGIN pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="665">			getpid(), index, attempt, requestedText, actualText, AC_SUCCESS);</line>
+      <line kind="add" new="666">		result = AC_Control();</line>
+      <line kind="add" new="667">		AC_Log("AC_PROFILE_WRITE_END pid=%d profile=%u attempt=%d requested=%s actual=unverified steps=%d,%d,%d,%d result=%u",</line>
+      <line kind="add" new="668">			getpid(), index, attempt, requestedText,</line>
+      <line kind="add" new="669">			volumeSteps[0], volumeSteps[1], volumeSteps[2], volumeSteps[3], result);</line>
+      <line kind="add" new="670">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="671">		{</line>
+      <line kind="add" new="672">			break;</line>
+      <line kind="add" new="673">		}</line>
+      <line kind="add" new="674"></line>
+      <line kind="add" new="675">		wait(AC_PROFILE_SETTLE_US);</line>
+      <line kind="add" new="676">		result = AC_GetVolume();</line>
+      <line kind="add" new="677">		if (result != AC_SUCCESS)</line>
+      <line kind="add" new="678">		{</line>
+      <line kind="add" new="679">			actualAvailable = 0;</line>
+      <line kind="add" new="680">			AC_Log("AC_PROFILE_READ_AFTER pid=%d profile=%u attempt=%d requested=%s actual=unavailable result=%u",</line>
+      <line kind="add" new="681">				getpid(), index, attempt, requestedText, result);</line>
+      <line kind="add" new="682">			break;</line>
+      <line kind="add" new="683">		}</line>
+      <line kind="add" new="684">		memcpy(actual, volumeState, sizeof(actual));</line>
+      <line kind="add" new="685">		actualAvailable = 1;</line>
+      <line kind="add" new="686">		AC_FormatVolumeValues(actual, actualText, sizeof(actualText));</line>
+      <line kind="add" new="687">		AC_Log("AC_PROFILE_READ_AFTER pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="688">			getpid(), index, attempt, requestedText, actualText, AC_SUCCESS);</line>
+      <line kind="add" new="689"></line>
+      <line kind="add" new="690">		int matched = AC_ProfileValuesMatch(requested, actual);</line>
+      <line kind="add" new="691">		AC_ProfileDecision decision = AC_GetProfileDecision(AC_SUCCESS, matched, attempt);</line>
+      <line kind="add" new="692">		AC_Log("AC_PROFILE_VERIFY pid=%d profile=%u attempt=%d requested=%s actual=%s match=%d result=%u",</line>
+      <line kind="add" new="693">			getpid(), index, attempt, requestedText, actualText, matched,</line>
+      <line kind="add" new="694">			decision == AC_PROFILE_DECISION_FAIL ? AC_PROFILE_VERIFY_FAILED : AC_SUCCESS);</line>
+      <line kind="add" new="695">		if (decision == AC_PROFILE_DECISION_SUCCESS)</line>
+      <line kind="add" new="696">		{</line>
+      <line kind="add" new="697">			// This summary/diagnostic value advances only after verified mixer state.</line>
+      <line kind="add" new="698">			aC_Data.activeAudioProfile = index;</line>
+      <line kind="add" new="699">			result = AC_SUCCESS;</line>
+      <line kind="add" new="700">			AC_Log("AC_PROFILE_SUCCESS pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="701">				getpid(), index, attempt, requestedText, actualText, result);</line>
+      <line kind="add" new="702">			break;</line>
+      <line kind="add" new="703">		}</line>
+      <line kind="add" new="704">		if (decision == AC_PROFILE_DECISION_RETRY)</line>
+      <line kind="add" new="705">		{</line>
+      <line kind="add" new="706">			AC_Log("AC_PROFILE_RETRY pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="707">				getpid(), index, attempt + 1, requestedText, actualText, AC_SUCCESS);</line>
+      <line kind="add" new="708">			result = AC_SUCCESS;</line>
+      <line kind="add" new="709">			continue;</line>
+      <line kind="add" new="710">		}</line>
+      <line kind="add" new="711">		result = AC_PROFILE_VERIFY_FAILED;</line>
+      <line kind="context" old="431" new="712">	}</line>
+      <line kind="context" old="432" new="713"></line>
+      <line kind="del" old="433">	return(result);</line>
+      <line kind="add" new="714">profile_done:</line>
+      <line kind="add" new="715">	if (result != AC_SUCCESS)</line>
+      <line kind="add" new="716">	{</line>
+      <line kind="add" new="717">		if (actualAvailable)</line>
+      <line kind="add" new="718">		{</line>
+      <line kind="add" new="719">			AC_FormatVolumeValues(actual, actualText, sizeof(actualText));</line>
+      <line kind="add" new="720">		}</line>
+      <line kind="add" new="721">		else</line>
+      <line kind="add" new="722">		{</line>
+      <line kind="add" new="723">			snprintf(actualText, sizeof(actualText), "unavailable");</line>
+      <line kind="add" new="724">		}</line>
+      <line kind="add" new="725">		AC_Log("AC_PROFILE_FAIL pid=%d profile=%u attempt=%d requested=%s actual=%s result=%u",</line>
+      <line kind="add" new="726">			getpid(), index, attempt &gt; AC_PROFILE_MAX_ATTEMPTS ? AC_PROFILE_MAX_ATTEMPTS : attempt,</line>
+      <line kind="add" new="727">			requestedText, actualText, result);</line>
+      <line kind="add" new="728">	}</line>
+      <line kind="add" new="729">	AC_close();</line>
+      <line kind="add" new="730">	return result;</line>
+      <line kind="context" old="434" new="731">}</line>
+      <line kind="context" old="435" new="732"></line>
+      <line kind="context" old="436" new="733">// execute audiomix command</line>
+      <line kind="context" old="437" new="734">unsigned char AC_Execute(unsigned char index)</line>
+      <line kind="context" old="438" new="735">{</line>
+    </hunk>
+    <hunk id="f01-h11" marker="M011" header="@@ -468,11 +765,17 @@ unsigned char AC_Execute(unsigned char index)" reason="Der Reset wird nur nach erfolgreichem Oeffnen des UART gesendet; ein Open-Fehler verhindert den Write. AC_close gibt den Port frei und das Reset-Ergebnis wird als eigener Status protokolliert. Konkrete Diffzeilen (Eingefuegt): AC_Log(&quot;AUDIO RESET: pid=%d caller=AC_Execute&quot;, getpid()); | AC_close(); | if (result == AC_SUCCESS). Konkrete Diffzeilen (Ersetzt/entfernt): return(AC_write(&amp;RESET[0],sizeof(RESET)));  // send reset command to Audiomix.">
+      <line kind="context" old="468" new="765">		break;</line>
+      <line kind="context" old="469" new="766">		case AUDIO_PROFILE:</line>
+      <line kind="context" old="470" new="767">			return(AC_Profile(channel));      // execute audio profile</line>
+      <line kind="context" old="471" new="768">		break;</line>
+      <line kind="context" old="472" new="769">		case AUDIO_RESET:</line>
+      <line kind="del" old="473">			return(AC_write(&amp;RESET[0],sizeof(RESET)));  // send reset command to Audiomix</line>
+      <line kind="add" new="770">			AC_Log("AUDIO RESET: pid=%d caller=AC_Execute", getpid());</line>
+      <line kind="add" new="771">			if (result == AC_SUCCESS)</line>
+      <line kind="add" new="772">			{</line>
+      <line kind="add" new="773">				result = AC_write(&amp;RESET[0],sizeof(RESET));  // send reset command to Audiomix</line>
+      <line kind="add" new="774">			}</line>
+      <line kind="add" new="775">			AC_close();</line>
+      <line kind="add" new="776">			return result;</line>
+      <line kind="context" old="474" new="777">		break;</line>
+      <line kind="context" old="475" new="778">		default:</line>
+      <line kind="context" old="476" new="779">			commandString = &amp;FADE_STOP[0];</line>
+      <line kind="context" old="477" new="780">			commandlength = sizeof(FADE_STOP);</line>
+      <line kind="context" old="478" new="781">			result = AC_EXEC_FAILED;  //undefined command</line>
+    </hunk>
+    <hunk id="f01-h12" marker="M012" header="@@ -506,14 +809,11 @@ unsigned char AC_Execute(unsigned char index)" reason="AC_close zentralisiert die UART-Freigabe: der Deskriptor wird geprueft, Schliessfehler werden protokolliert und der globale Streamstatus auf geschlossen gesetzt. Konkrete Diffzeilen (Eingefuegt): AC_close();. Konkrete Diffzeilen (Ersetzt/entfernt): if(uart0_filestream &gt;0) | uart0_filestream = close(uart0_filestream); // close COM Port.">
+      <line kind="context" old="506" new="809"></line>
+      <line kind="context" old="507" new="810">	if(result == AC_SUCCESS)</line>
+      <line kind="context" old="508" new="811">	{</line>
+      <line kind="context" old="509" new="812">		result |=  AC_write(&amp;commandString[0],commandlength);  // send first command sequence to Audiomix</line>
+      <line kind="context" old="510" new="813">	}</line>
+      <line kind="del" old="511">	if(uart0_filestream &gt;0)</line>
+      <line kind="del" old="512">	{</line>
+      <line kind="del" old="513">		uart0_filestream = close(uart0_filestream); // close COM Port</line>
+      <line kind="del" old="514">	}</line>
+      <line kind="add" new="814">	AC_close();</line>
+      <line kind="context" old="515" new="815">	// reset channels for next command</line>
+      <line kind="context" old="516" new="816">	commandString[7] = temp;</line>
+      <line kind="context" old="517" new="817">	commandString[8] = temp;</line>
+      <line kind="context" old="518" new="818">	commandString[9] = temp;</line>
+      <line kind="context" old="519" new="819">	commandString[10] = temp;</line>
+    </hunk>
+    <hunk id="f01-h13" marker="M013" header="@@ -540,19 +840,18 @@ unsigned char AC_GetVersion (void)" reason="Der Mutestate-Befehl wird nur nach erfolgreichem Oeffnen des UART gesendet. Anschliessend wird AC_close aufgerufen, damit ein Portfehler nicht durch einen Folge-Write verdeckt und der Deskriptor kontrolliert freigegeben wird. Konkrete Diffzeilen (Eingefuegt): AC_close(); | if (result == AC_SUCCESS) | result = AC_write(MUTESTATE,sizeof(MUTESTATE));. Konkrete Diffzeilen (Ersetzt/entfernt): result =  AC_write(MUTESTATE,sizeof(MUTESTATE)); | if(uart0_filestream &gt;0) | uart0_filestream = close(uart0_filestream); // close COM Port.">
+      <line kind="context" old="540" new="840">unsigned char AC_Test (void)</line>
+      <line kind="context" old="541" new="841">{</line>
+      <line kind="context" old="542" new="842">	unsigned char result = AC_SUCCESS;</line>
+      <line kind="context" old="543" new="843">	result = AC_open(); // open COM Port</line>
+      <line kind="context" old="544" new="844"></line>
+      <line kind="del" old="545">	result =  AC_write(MUTESTATE,sizeof(MUTESTATE));</line>
+      <line kind="del" old="546">	//result =  AC_write(VOL1,sizeof(VOL1));</line>
+      <line kind="add" new="845">	if (result == AC_SUCCESS)</line>
+      <line kind="add" new="846">	{</line>
+      <line kind="add" new="847">		result = AC_write(MUTESTATE,sizeof(MUTESTATE));</line>
+      <line kind="add" new="848">	}</line>
+      <line kind="context" old="547" new="849"></line>
+      <line kind="context" old="548" new="850"></line>
+      <line kind="context" old="549" new="851">	if(result == AC_SUCCESS)</line>
+      <line kind="context" old="550" new="852">	{</line>
+      <line kind="context" old="551" new="853">		result =  AC_read(&amp;testString[0],sizeof(testString));</line>
+      <line kind="context" old="552" new="854">	}</line>
+      <line kind="del" old="553">	if(uart0_filestream &gt;0)</line>
+      <line kind="del" old="554">	{</line>
+      <line kind="del" old="555">		uart0_filestream = close(uart0_filestream); // close COM Port</line>
+      <line kind="del" old="556">	}</line>
+      <line kind="add" new="855">	AC_close();</line>
+      <line kind="context" old="557" new="856">	return(result);</line>
+      <line kind="context" old="558" new="857">}</line>
+    </hunk>
+  </file>
+  <file path="AudioControl/AudioControl.h" added="6" id="f02" deleted="1" status="geaendert">
+    <hunk id="f02-h1" marker="M014" header="@@ -16,10 +16,13 @@" reason="Eindeutige Fehlercodes fuer ungueltige Antworten und fehlgeschlagene Profilverifikation sowie Grenzen fuer Versuche und Einschwingzeit machen das neue Verhalten explizit. Codes 39/40 werden nicht als unabhaengige Bitmasken interpretiert; der Abnahmebericht nennt die Fehlerweitergabe 38/39/40 auf Windows-Seite. Konkrete Diffzeilen (Eingefuegt): #define AC_INVALID_RESPONSE 39 // AC volume response is invalid | #define AC_PROFILE_VERIFY_FAILED 40 // Mixer did not reach the requested profile | #define AC_PROFILE_MAX_ATTEMPTS 2.">
+      <line kind="context" old="16" new="16">    #define AC_EXEC_FAILED 34 // AC execute failure</line>
+      <line kind="context" old="17" new="17">	#define AC_WRITE_FAILED 35 // AC write data file failed</line>
+      <line kind="context" old="18" new="18">	#define AC_READ_FAILED 36 // AC read data file failed</line>
+      <line kind="context" old="19" new="19">	#define AC_OUT_OF_RANGE 37 // AC data out of range</line>
+      <line kind="context" old="20" new="20">    #define AC_RX_TIMEOUT 38   // AC receive data from Audio Mix timed out</line>
+      <line kind="add" new="21">    #define AC_INVALID_RESPONSE 39 // AC volume response is invalid</line>
+      <line kind="add" new="22">    #define AC_PROFILE_VERIFY_FAILED 40 // Mixer did not reach the requested profile</line>
+      <line kind="add" new="23">    #define AC_PROFILE_MAX_ATTEMPTS 2</line>
+      <line kind="context" old="21" new="24"></line>
+      <line kind="context" old="22" new="25">    #define AC_SINGLE_SEQUENCE 0 // execute single command</line>
+      <line kind="context" old="23" new="26">    #define AC_INIT_SEQUENCE 1  // execute initialization sequence (Reset, Set Active, Set Volume)</line>
+      <line kind="context" old="24" new="27">    #define AC_FADER_SEQUENCE 2 // execute fader sequence (active fader up , all other faders down)</line>
+      <line kind="context" old="25" new="28"></line>
+    </hunk>
+    <hunk id="f02-h2" marker="M015" header="@@ -37,17 +40,19 @@" reason="Eindeutige Fehlercodes fuer ungueltige Antworten und fehlgeschlagene Profilverifikation sowie Grenzen fuer Versuche und Einschwingzeit machen das neue Verhalten explizit. Codes 39/40 werden nicht als unabhaengige Bitmasken interpretiert; der Abnahmebericht nennt die Fehlerweitergabe 38/39/40 auf Windows-Seite. Konkrete Diffzeilen (Eingefuegt): extern void AC_Log(const char *fmt, ...); | extern unsigned char AC_read(char* buffer, int  length);. Konkrete Diffzeilen (Ersetzt/entfernt): extern unsigned char AC_read(char* buffer, int  length);  // prototype read from COM Port.">
+      <line kind="context" old="37" new="40">    #define AC_BAND        0x04 // audio profile 5</line>
+      <line kind="context" old="38" new="41">    #define AC_VIDEO_CLIP  0x05 // audio profile 6</line>
+      <line kind="context" old="39" new="42"></line>
+      <line kind="context" old="40" new="43">    extern unsigned char AC_init(void);</line>
+      <line kind="context" old="41" new="44">    extern unsigned char AC_write(char* buffer, int length); // prototype write to COM Port</line>
+      <line kind="del" old="42">    extern unsigned char AC_read(char* buffer, int  length);  // prototype read from COM Port</line>
+      <line kind="add" new="45">    // Reads a parenthesized response through ')' or up to length bytes; timeout with data is accepted.</line>
+      <line kind="add" new="46">    extern unsigned char AC_read(char* buffer, int  length);</line>
+      <line kind="context" old="43" new="47">    extern unsigned char AC_Execute(unsigned char index);    // execute command</line>
+      <line kind="context" old="44" new="48">    extern unsigned char AC_GetVersion (void);</line>
+      <line kind="context" old="45" new="49">    extern unsigned char AC_Test (void);</line>
+      <line kind="context" old="46" new="50">    extern unsigned char AC_Profile(unsigned char index);</line>
+      <line kind="context" old="47" new="51">    extern unsigned char AC_Teach(int index);</line>
+      <line kind="context" old="48" new="52">    extern unsigned char AC_writeDatFile(void);</line>
+      <line kind="add" new="53">    extern void AC_Log(const char *fmt, ...);</line>
+      <line kind="context" old="49" new="54"></line>
+      <line kind="context" old="50" new="55">    typedef struct</line>
+      <line kind="context" old="51" new="56">	{</line>
+      <line kind="context" old="52" new="57">		unsigned char activeAudioProfile; // for audio switch summary signal with channel 2, 3, or 4</line>
+      <line kind="context" old="53" new="58">		unsigned char audioProfiles[10][4];</line>
+    </hunk>
+  </file>
+  <file path="AudioControl/AudioControlValidation.c" added="99" id="f03" deleted="0" status="neu">
+    <hunk id="f03-h1" marker="M016" header="@@ -0,0 +1,99 @@" reason="Parser, exakter Vierkanalvergleich und begrenzte Retry-Entscheidung werden als hardwarefreie Funktionen isoliert. Das macht falsche Kanalantworten, ungueltige Werte und die Grenze von maximal zwei Profilversuchen gezielt pruefbar, ohne einen Mixer anschliessen zu muessen. Konkrete Diffzeilen (Eingefuegt): int AC_ParseVolumeResponse(const char *response, size_t responseLength, | int AC_ProfileValuesMatch(const int requested[4], const int actual[4]) | AC_ProfileDecision AC_GetProfileDecision(unsigned char communicationResult,.">
+      <line kind="add" new="1">#include "AudioControlValidation.h"</line>
+      <line kind="add" new="2"></line>
+      <line kind="add" new="3">int AC_ParseVolumeResponse(const char *response, size_t responseLength,</line>
+      <line kind="add" new="4">		int expectedChannel, int *parsedVolume, const char **reason)</line>
+      <line kind="add" new="5">{</line>
+      <line kind="add" new="6">	if (reason != NULL)</line>
+      <line kind="add" new="7">	{</line>
+      <line kind="add" new="8">		*reason = "invalid argument";</line>
+      <line kind="add" new="9">	}</line>
+      <line kind="add" new="10">	if (response == NULL || parsedVolume == NULL || expectedChannel &lt; 1 || expectedChannel &gt; 4)</line>
+      <line kind="add" new="11">	{</line>
+      <line kind="add" new="12">		return 0;</line>
+      <line kind="add" new="13">	}</line>
+      <line kind="add" new="14">	if (responseLength != 9)</line>
+      <line kind="add" new="15">	{</line>
+      <line kind="add" new="16">		if (reason != NULL)</line>
+      <line kind="add" new="17">		{</line>
+      <line kind="add" new="18">			*reason = "invalid length";</line>
+      <line kind="add" new="19">		}</line>
+      <line kind="add" new="20">		return 0;</line>
+      <line kind="add" new="21">	}</line>
+      <line kind="add" new="22">	if (response[0] != '(' || response[1] != 'V' || response[2] != 'O' || response[3] != 'L' || response[5] != ':')</line>
+      <line kind="add" new="23">	{</line>
+      <line kind="add" new="24">		if (reason != NULL)</line>
+      <line kind="add" new="25">		{</line>
+      <line kind="add" new="26">			*reason = "invalid prefix";</line>
+      <line kind="add" new="27">		}</line>
+      <line kind="add" new="28">		return 0;</line>
+      <line kind="add" new="29">	}</line>
+      <line kind="add" new="30">	if (response[4] != (char)('0' + expectedChannel))</line>
+      <line kind="add" new="31">	{</line>
+      <line kind="add" new="32">		if (reason != NULL)</line>
+      <line kind="add" new="33">		{</line>
+      <line kind="add" new="34">			*reason = "unexpected channel";</line>
+      <line kind="add" new="35">		}</line>
+      <line kind="add" new="36">		return 0;</line>
+      <line kind="add" new="37">	}</line>
+      <line kind="add" new="38">	if (response[6] &lt; '0' || response[6] &gt; '9' || response[7] &lt; '0' || response[7] &gt; '9')</line>
+      <line kind="add" new="39">	{</line>
+      <line kind="add" new="40">		if (reason != NULL)</line>
+      <line kind="add" new="41">		{</line>
+      <line kind="add" new="42">			*reason = "volume is not two decimal digits";</line>
+      <line kind="add" new="43">		}</line>
+      <line kind="add" new="44">		return 0;</line>
+      <line kind="add" new="45">	}</line>
+      <line kind="add" new="46">	if (response[8] != ')')</line>
+      <line kind="add" new="47">	{</line>
+      <line kind="add" new="48">		if (reason != NULL)</line>
+      <line kind="add" new="49">		{</line>
+      <line kind="add" new="50">			*reason = "invalid terminator";</line>
+      <line kind="add" new="51">		}</line>
+      <line kind="add" new="52">		return 0;</line>
+      <line kind="add" new="53">	}</line>
+      <line kind="add" new="54">	int volume = (response[6] - '0') * 10 + (response[7] - '0');</line>
+      <line kind="add" new="55">	if (volume &gt; 63)</line>
+      <line kind="add" new="56">	{</line>
+      <line kind="add" new="57">		if (reason != NULL)</line>
+      <line kind="add" new="58">		{</line>
+      <line kind="add" new="59">			*reason = "volume out of range";</line>
+      <line kind="add" new="60">		}</line>
+      <line kind="add" new="61">		return 0;</line>
+      <line kind="add" new="62">	}</line>
+      <line kind="add" new="63">	*parsedVolume = volume;</line>
+      <line kind="add" new="64">	if (reason != NULL)</line>
+      <line kind="add" new="65">	{</line>
+      <line kind="add" new="66">		*reason = "ok";</line>
+      <line kind="add" new="67">	}</line>
+      <line kind="add" new="68">	return 1;</line>
+      <line kind="add" new="69">}</line>
+      <line kind="add" new="70"></line>
+      <line kind="add" new="71">int AC_ProfileValuesMatch(const int requested[4], const int actual[4])</line>
+      <line kind="add" new="72">{</line>
+      <line kind="add" new="73">	if (requested == NULL || actual == NULL)</line>
+      <line kind="add" new="74">	{</line>
+      <line kind="add" new="75">		return 0;</line>
+      <line kind="add" new="76">	}</line>
+      <line kind="add" new="77">	for (int channel = 0; channel &lt; 4; ++channel)</line>
+      <line kind="add" new="78">	{</line>
+      <line kind="add" new="79">		if (requested[channel] != actual[channel])</line>
+      <line kind="add" new="80">		{</line>
+      <line kind="add" new="81">			return 0;</line>
+      <line kind="add" new="82">		}</line>
+      <line kind="add" new="83">	}</line>
+      <line kind="add" new="84">	return 1;</line>
+      <line kind="add" new="85">}</line>
+      <line kind="add" new="86"></line>
+      <line kind="add" new="87">AC_ProfileDecision AC_GetProfileDecision(unsigned char communicationResult,</line>
+      <line kind="add" new="88">		int matched, int attempt)</line>
+      <line kind="add" new="89">{</line>
+      <line kind="add" new="90">	if (communicationResult != AC_SUCCESS)</line>
+      <line kind="add" new="91">	{</line>
+      <line kind="add" new="92">		return AC_PROFILE_DECISION_FAIL;</line>
+      <line kind="add" new="93">	}</line>
+      <line kind="add" new="94">	if (matched)</line>
+      <line kind="add" new="95">	{</line>
+      <line kind="add" new="96">		return AC_PROFILE_DECISION_SUCCESS;</line>
+      <line kind="add" new="97">	}</line>
+      <line kind="add" new="98">	return attempt &lt; AC_PROFILE_MAX_ATTEMPTS ? AC_PROFILE_DECISION_RETRY : AC_PROFILE_DECISION_FAIL;</line>
+      <line kind="add" new="99">}</line>
+    </hunk>
+  </file>
+  <file path="AudioControl/AudioControlValidation.h" added="20" id="f04" deleted="0" status="neu">
+    <hunk id="f04-h1" marker="M017" header="@@ -0,0 +1,20 @@" reason="Die Parser- und Verifikationsschnittstellen werden fuer Produktion und Tests gemeinsam deklariert. Ein expliziter Entscheidungswert trennt Erfolg, zulaessigen Retry und endgueltigen Fehler. Konkrete Diffzeilen (Eingefuegt): int AC_ParseVolumeResponse(const char *response, size_t responseLength, | int AC_ProfileValuesMatch(const int requested[4], const int actual[4]); | AC_ProfileDecision AC_GetProfileDecision(unsigned char communicationResult,.">
+      <line kind="add" new="1">#ifndef AUDIOCONTROL_VALIDATION_H_</line>
+      <line kind="add" new="2">#define AUDIOCONTROL_VALIDATION_H_</line>
+      <line kind="add" new="3"></line>
+      <line kind="add" new="4">#include &lt;stddef.h&gt;</line>
+      <line kind="add" new="5">#include "AudioControl.h"</line>
+      <line kind="add" new="6"></line>
+      <line kind="add" new="7">typedef enum</line>
+      <line kind="add" new="8">{</line>
+      <line kind="add" new="9">	AC_PROFILE_DECISION_FAIL,</line>
+      <line kind="add" new="10">	AC_PROFILE_DECISION_SUCCESS,</line>
+      <line kind="add" new="11">	AC_PROFILE_DECISION_RETRY</line>
+      <line kind="add" new="12">} AC_ProfileDecision;</line>
+      <line kind="add" new="13"></line>
+      <line kind="add" new="14">int AC_ParseVolumeResponse(const char *response, size_t responseLength,</line>
+      <line kind="add" new="15">		int expectedChannel, int *parsedVolume, const char **reason);</line>
+      <line kind="add" new="16">int AC_ProfileValuesMatch(const int requested[4], const int actual[4]);</line>
+      <line kind="add" new="17">AC_ProfileDecision AC_GetProfileDecision(unsigned char communicationResult,</line>
+      <line kind="add" new="18">		int matched, int attempt);</line>
+      <line kind="add" new="19"></line>
+      <line kind="add" new="20">#endif</line>
+    </hunk>
+  </file>
+  <file path="AudioControl/AudioControlWrite.c" added="31" id="f05" deleted="0" status="neu">
+    <hunk id="f05-h1" marker="M018" header="@@ -0,0 +1,31 @@" reason="Der Schreibhelfer vervollstaendigt partielle Writes, wiederholt EINTR und behandelt Null-Write oder echte Fehler als AC_TX_FAILED. Ein injizierbarer Write-Aufruf erlaubt reproduzierbare Tests der zuvor unbeachteten Teiluebertragung. Konkrete Diffzeilen (Eingefuegt): unsigned char AC_WriteAllWith(int fd, const char *buffer, size_t length, | #include &quot;AudioControlWrite.h&quot; | #include &lt;errno.h&gt;.">
+      <line kind="add" new="1">#include "AudioControlWrite.h"</line>
+      <line kind="add" new="2"></line>
+      <line kind="add" new="3">#include &lt;errno.h&gt;</line>
+      <line kind="add" new="4"></line>
+      <line kind="add" new="5">unsigned char AC_WriteAllWith(int fd, const char *buffer, size_t length,</line>
+      <line kind="add" new="6">		AC_WriteFunction writeFunction, size_t *written, int *errorNumber)</line>
+      <line kind="add" new="7">{</line>
+      <line kind="add" new="8">	if (written == NULL || errorNumber == NULL || writeFunction == NULL ||</line>
+      <line kind="add" new="9">		(buffer == NULL &amp;&amp; length != 0))</line>
+      <line kind="add" new="10">	{</line>
+      <line kind="add" new="11">		return AC_TX_FAILED;</line>
+      <line kind="add" new="12">	}</line>
+      <line kind="add" new="13">	*written = 0;</line>
+      <line kind="add" new="14">	*errorNumber = 0;</line>
+      <line kind="add" new="15">	while (*written &lt; length)</line>
+      <line kind="add" new="16">	{</line>
+      <line kind="add" new="17">		ptrdiff_t bytesWritten = writeFunction(fd, buffer + *written, length - *written);</line>
+      <line kind="add" new="18">		if (bytesWritten &gt; 0 &amp;&amp; (size_t)bytesWritten &lt;= length - *written)</line>
+      <line kind="add" new="19">		{</line>
+      <line kind="add" new="20">			*written += (size_t)bytesWritten;</line>
+      <line kind="add" new="21">			continue;</line>
+      <line kind="add" new="22">		}</line>
+      <line kind="add" new="23">		if (bytesWritten &lt; 0 &amp;&amp; errno == EINTR)</line>
+      <line kind="add" new="24">		{</line>
+      <line kind="add" new="25">			continue;</line>
+      <line kind="add" new="26">		}</line>
+      <line kind="add" new="27">		*errorNumber = bytesWritten == 0 || bytesWritten &gt; 0 ? EIO : errno;</line>
+      <line kind="add" new="28">		return AC_TX_FAILED;</line>
+      <line kind="add" new="29">	}</line>
+      <line kind="add" new="30">	return AC_SUCCESS;</line>
+      <line kind="add" new="31">}</line>
+    </hunk>
+  </file>
+  <file path="AudioControl/AudioControlWrite.h" added="12" id="f06" deleted="0" status="neu">
+    <hunk id="f06-h1" marker="M019" header="@@ -0,0 +1,12 @@" reason="Die Write-Schnittstelle liefert neben dem Ergebnis auch uebertragene Bytezahl und errno. Der Funktionszeiger entkoppelt die Tests vom echten UART-Dateideskriptor. Konkrete Diffzeilen (Eingefuegt): unsigned char AC_WriteAllWith(int fd, const char *buffer, size_t length, | #ifndef AUDIOCONTROL_WRITE_H_ | #define AUDIOCONTROL_WRITE_H_.">
+      <line kind="add" new="1">#ifndef AUDIOCONTROL_WRITE_H_</line>
+      <line kind="add" new="2">#define AUDIOCONTROL_WRITE_H_</line>
+      <line kind="add" new="3"></line>
+      <line kind="add" new="4">#include &lt;stddef.h&gt;</line>
+      <line kind="add" new="5">#include "AudioControl.h"</line>
+      <line kind="add" new="6"></line>
+      <line kind="add" new="7">typedef ptrdiff_t (*AC_WriteFunction)(int fd, const char *buffer, size_t length);</line>
+      <line kind="add" new="8"></line>
+      <line kind="add" new="9">unsigned char AC_WriteAllWith(int fd, const char *buffer, size_t length,</line>
+      <line kind="add" new="10">		AC_WriteFunction writeFunction, size_t *written, int *errorNumber);</line>
+      <line kind="add" new="11"></line>
+      <line kind="add" new="12">#endif</line>
+    </hunk>
+  </file>
+  <file path="Command_Interpreter/ComInt.c" added="2" id="f07" deleted="0" status="geaendert">
+    <hunk id="f07-h1" marker="M020" header="@@ -6,10 +6,11 @@" reason="Der Kommandoeingang protokolliert PID, command und index. Damit laesst sich die Kette Windows-Aufruf zu Raspberry-Profil eindeutig verfolgen; genau diese COMMAND-Zeile mit command=30 index=114 ist im Abnahmebericht S. 5 als Ankunftsnachweis verwendet. Konkrete Diffzeilen (Eingefuegt): #include &lt;unistd.h&gt;.">
+      <line kind="context" old="6" new="6"></line>
+      <line kind="context" old="7" new="7">==============================================================================*/</line>
+      <line kind="context" old="8" new="8">#include &lt;stdlib.h&gt;</line>
+      <line kind="context" old="9" new="9">#include &lt;stdio.h&gt;</line>
+      <line kind="context" old="10" new="10">#include &lt;stdint.h&gt;</line>
+      <line kind="add" new="11">#include &lt;unistd.h&gt;</line>
+      <line kind="context" old="11" new="12">#include "ComInt.h"</line>
+      <line kind="context" old="12" new="13">#include "timer.h"</line>
+      <line kind="context" old="13" new="14">#include "IRcontrol.h"</line>
+      <line kind="context" old="14" new="15">#include "AudioControl.h"</line>
+      <line kind="context" old="15" new="16">#include "PositionControl.h"</line>
+    </hunk>
+    <hunk id="f07-h2" marker="M021" header="@@ -335,10 +336,11 @@ unsigned char CIsequencer(unsigned char index)" reason="Der Kommandoeingang protokolliert PID, command und index. Damit laesst sich die Kette Windows-Aufruf zu Raspberry-Profil eindeutig verfolgen; genau diese COMMAND-Zeile mit command=30 index=114 ist im Abnahmebericht S. 5 als Ankunftsnachweis verwendet. Konkrete Diffzeilen (Eingefuegt): AC_Log(&quot;COMMAND pid=%d command=%d index=%d&quot;, getpid(), command, index);.">
+      <line kind="context" old="335" new="336">unsigned char CIexecuteCommand(char *argv[])</line>
+      <line kind="context" old="336" new="337">{</line>
+      <line kind="context" old="337" new="338">	unsigned char result = CI_SUCCESS;</line>
+      <line kind="context" old="338" new="339">	int command = atoi(&amp;argv[1][0]);</line>
+      <line kind="context" old="339" new="340">	int index = atoi(&amp;argv[2][0]);</line>
+      <line kind="add" new="341">	AC_Log("COMMAND pid=%d command=%d index=%d", getpid(), command, index);</line>
+      <line kind="context" old="340" new="342">	switch(command)</line>
+      <line kind="context" old="341" new="343">	{</line>
+      <line kind="context" old="342" new="344">		case CI_IR: // IR control command</line>
+      <line kind="context" old="343" new="345">			result = IR_init();</line>
+      <line kind="context" old="344" new="346">			if(result == IR_SUCCESS)</line>
+    </hunk>
+  </file>
+  <file path="PositionControl/PositionControl.c" added="11" id="f08" deleted="0" status="geaendert">
+    <hunk id="f08-h1" marker="M022" header="@@ -6,10 +6,12 @@" reason="Bei aktiviertem PTZ-Kameramodus wird die historische lokale Bewegung in PC_Move uebersprungen. So soll die externe PTZ-Steuerung nicht zusaetzlich den alten Relais-/Zoom-Pfad ausloesen. Dies liegt ausserhalb des reinen Audio-Arbeitsauftrags und ist durch den Audio-Abnahmebericht nicht separat abgenommen. Konkrete Diffzeilen (Eingefuegt): #include &lt;ctype.h&gt; | #include &quot;raspi_build_config.h&quot;.">
+      <line kind="context" old="6" new="6"></line>
+      <line kind="context" old="7" new="7">==============================================================================*/</line>
+      <line kind="context" old="8" new="8">#include &lt;stdio.h&gt;</line>
+      <line kind="context" old="9" new="9">#include &lt;string.h&gt;</line>
+      <line kind="context" old="10" new="10">#include &lt;math.h&gt;</line>
+      <line kind="add" new="11">#include &lt;ctype.h&gt;</line>
+      <line kind="add" new="12">#include "raspi_build_config.h"</line>
+      <line kind="context" old="11" new="13">#include "PositionControl.h"</line>
+      <line kind="context" old="12" new="14">#include "PositionDirect.h"</line>
+      <line kind="context" old="13" new="15">#include "timer.h"</line>
+      <line kind="context" old="14" new="16">#include "system.h"</line>
+      <line kind="context" old="15" new="17">#include "AudioControl.h"</line>
+    </hunk>
+    <hunk id="f08-h2" marker="M023" header="@@ -20,10 +22,14 @@ extern PositionSens PosDir_Gier;" reason="Bei aktiviertem PTZ-Kameramodus wird die historische lokale Bewegung in PC_Move uebersprungen. So soll die externe PTZ-Steuerung nicht zusaetzlich den alten Relais-/Zoom-Pfad ausloesen. Dies liegt ausserhalb des reinen Audio-Arbeitsauftrags und ist durch den Audio-Abnahmebericht nicht separat abgenommen. Konkrete Diffzeilen (Eingefuegt): #ifndef RASPI_CONFIG_PTZ_CAM_ENABLED | #define RASPI_CONFIG_PTZ_CAM_ENABLED 0 | #endif.">
+      <line kind="context" old="20" new="22">extern PositionSens PosDir_Nick;</line>
+      <line kind="context" old="21" new="23"></line>
+      <line kind="context" old="22" new="24">PosAngle_Data teachedPositions[22];</line>
+      <line kind="context" old="23" new="25">PosAngle_Data angleData = {0.0,0.0,0.0,0.0,0.0,0.0}; // calculated nick gier and roll angles</line>
+      <line kind="context" old="24" new="26"></line>
+      <line kind="add" new="27">#ifndef RASPI_CONFIG_PTZ_CAM_ENABLED</line>
+      <line kind="add" new="28">#define RASPI_CONFIG_PTZ_CAM_ENABLED 0</line>
+      <line kind="add" new="29">#endif</line>
+      <line kind="add" new="30"></line>
+      <line kind="context" old="25" new="31">// initialize gyroscope, accelerometer and magnetometer</line>
+      <line kind="context" old="26" new="32">unsigned char PC_Init(void)</line>
+      <line kind="context" old="27" new="33">{</line>
+      <line kind="context" old="28" new="34">	unsigned char retval = PC_SUCCESS;</line>
+      <line kind="context" old="29" new="35">	// initialize autozoom</line>
+    </hunk>
+    <hunk id="f08-h3" marker="M024" header="@@ -68,10 +74,15 @@ unsigned char PC_calc_Angles(void)" reason="Bei aktiviertem PTZ-Kameramodus wird die historische lokale Bewegung in PC_Move uebersprungen. So soll die externe PTZ-Steuerung nicht zusaetzlich den alten Relais-/Zoom-Pfad ausloesen. Dies liegt ausserhalb des reinen Audio-Arbeitsauftrags und ist durch den Audio-Abnahmebericht nicht separat abgenommen. Konkrete Diffzeilen (Eingefuegt): if(RASPI_CONFIG_PTZ_CAM_ENABLED != 0) | return(retVal);.">
+      <line kind="context" old="68" new="74">// move to position</line>
+      <line kind="context" old="69" new="75">unsigned char PC_Move(unsigned char ID)</line>
+      <line kind="context" old="70" new="76">{</line>
+      <line kind="context" old="71" new="77">	unsigned char retVal = PC_SUCCESS;</line>
+      <line kind="context" old="72" new="78">	unsigned char moveDone = 0;</line>
+      <line kind="add" new="79"></line>
+      <line kind="add" new="80">	if(RASPI_CONFIG_PTZ_CAM_ENABLED != 0)</line>
+      <line kind="add" new="81">	{</line>
+      <line kind="add" new="82">		return(retVal);</line>
+      <line kind="add" new="83">	}</line>
+      <line kind="context" old="73" new="84">	unsigned char moveUp = 0;</line>
+      <line kind="context" old="74" new="85">	unsigned char moveRight = 0;</line>
+      <line kind="context" old="75" new="86">	unsigned char zoomState = AZ_TASK_INITIALIZE;</line>
+      <line kind="context" old="76" new="87">	systemtimer timeoutTimer;</line>
+      <line kind="context" old="77" new="88">	systemtimer loopTimer;</line>
+    </hunk>
+  </file>
+  <file path="System_Raspberry/pigpio_adapter.c" added="17" id="f09" deleted="0" status="geaendert">
+    <hunk id="f09-h1" marker="M025" header="@@ -337,10 +337,27 @@ int RPI_ServoPulse(int pin, unsigned pulseWidthMicros)" reason="Der Servo-Pfad setzt vor der Ausgabe den Pinmodus und begrenzt positive Pulsbreiten auf 500 bis 2500 Mikrosekunden. Das betrifft die Legacy-Hardwareansteuerung, nicht die Audio-Pipeline. Pruefhinweis: Pulsbreite 0 kehrt vor gpioServo() zurueck; ein Abschalten bereits laufender Pulse ist damit nicht belegt. Konkrete Diffzeilen (Eingefuegt): if (pigpioApi.gpioSetMode((unsigned)bcmPin, 2u) &lt; 0) | set_last_error(&quot;gpioSetMode for servo pin %d failed&quot;, bcmPin); | return -1;.">
+      <line kind="context" old="337" new="337">	if (bcmPin &lt; 0)</line>
+      <line kind="context" old="338" new="338">	{</line>
+      <line kind="context" old="339" new="339">		set_last_error("Unsupported legacy GPIO pin %d", pin);</line>
+      <line kind="context" old="340" new="340">		return -1;</line>
+      <line kind="context" old="341" new="341">	}</line>
+      <line kind="add" new="342">	if (pigpioApi.gpioSetMode((unsigned)bcmPin, 2u) &lt; 0)</line>
+      <line kind="add" new="343">	{</line>
+      <line kind="add" new="344">		set_last_error("gpioSetMode for servo pin %d failed", bcmPin);</line>
+      <line kind="add" new="345">		return -1;</line>
+      <line kind="add" new="346">	}</line>
+      <line kind="add" new="347">	if (pulseWidthMicros == 0u)</line>
+      <line kind="add" new="348">	{</line>
+      <line kind="add" new="349">		return 0;</line>
+      <line kind="add" new="350">	}</line>
+      <line kind="add" new="351">	if (pulseWidthMicros &lt; 500u)</line>
+      <line kind="add" new="352">	{</line>
+      <line kind="add" new="353">		pulseWidthMicros = 500u;</line>
+      <line kind="add" new="354">	}</line>
+      <line kind="add" new="355">	if (pulseWidthMicros &gt; 2500u)</line>
+      <line kind="add" new="356">	{</line>
+      <line kind="add" new="357">		pulseWidthMicros = 2500u;</line>
+      <line kind="add" new="358">	}</line>
+      <line kind="context" old="342" new="359">	rc = pigpioApi.gpioServo((unsigned)bcmPin, pulseWidthMicros);</line>
+      <line kind="context" old="343" new="360">	if (rc &lt; 0)</line>
+      <line kind="context" old="344" new="361">	{</line>
+      <line kind="context" old="345" new="362">		set_last_error("gpioServo failed for legacy pin %d (BCM %d), pulse %u: %d", pin, bcmPin, pulseWidthMicros, rc);</line>
+      <line kind="context" old="346" new="363">	}</line>
+    </hunk>
+  </file>
+  <file path="System_Raspberry/system.c" added="22" id="f10" deleted="0" status="geaendert">
+    <hunk id="f10-h1" marker="M026" header="@@ -6,14 +6,36 @@" reason="Die konfigurierte IP wird ueber eine gemeinsame, puffergepruefte Systemschnittstelle bereitgestellt. Ungueltige Zielpuffer und abgeschnittene Ausgaben liefern einen Fehler statt eines scheinbar gueltigen Ergebnisses. Konkrete Diffzeilen (Eingefuegt): int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize) | #include &lt;ctype.h&gt; | #include &quot;raspi_build_config.h&quot;.">
+      <line kind="context" old="6" new="6"></line>
+      <line kind="context" old="7" new="7">==============================================================================*/</line>
+      <line kind="context" old="8" new="8">#include &lt;sched.h&gt;</line>
+      <line kind="context" old="9" new="9">#include &lt;string.h&gt;</line>
+      <line kind="context" old="10" new="10">#include &lt;fcntl.h&gt;</line>
+      <line kind="add" new="11">#include &lt;ctype.h&gt;</line>
+      <line kind="add" new="12">#include "raspi_build_config.h"</line>
+      <line kind="context" old="11" new="13">#include "system.h"</line>
+      <line kind="context" old="12" new="14"></line>
+      <line kind="context" old="13" new="15">  struct sched_param sp;</line>
+      <line kind="context" old="14" new="16"></line>
+      <line kind="add" new="17">  int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize)</line>
+      <line kind="add" new="18">  {</line>
+      <line kind="add" new="19">    int written;</line>
+      <line kind="add" new="20"></line>
+      <line kind="add" new="21">    if((ipAddress == NULL) || (ipAddressSize == 0))</line>
+      <line kind="add" new="22">    {</line>
+      <line kind="add" new="23">        return -1;</line>
+      <line kind="add" new="24">    }</line>
+      <line kind="add" new="25"></line>
+      <line kind="add" new="26">#ifndef RASPI_CONFIG_IP_ADDRESS</line>
+      <line kind="add" new="27">#define RASPI_CONFIG_IP_ADDRESS "0.0.0.0"</line>
+      <line kind="add" new="28">#endif</line>
+      <line kind="add" new="29">    written = snprintf(ipAddress, ipAddressSize, "%s", RASPI_CONFIG_IP_ADDRESS);</line>
+      <line kind="add" new="30">    if((written &lt; 0) || ((size_t)written &gt;= ipAddressSize))</line>
+      <line kind="add" new="31">    {</line>
+      <line kind="add" new="32">        return -1;</line>
+      <line kind="add" new="33">    }</line>
+      <line kind="add" new="34">    return 0;</line>
+      <line kind="add" new="35">  }</line>
+      <line kind="add" new="36"></line>
+      <line kind="context" old="15" new="37">  long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max)</line>
+      <line kind="context" old="16" new="38">  {</line>
+      <line kind="context" old="17" new="39">    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;</line>
+      <line kind="context" old="18" new="40">  }</line>
+      <line kind="context" old="19" new="41"></line>
+    </hunk>
+  </file>
+  <file path="System_Raspberry/system.h" added="2" id="f11" deleted="0" status="geaendert">
+    <hunk id="f11-h1" marker="M027" header="@@ -12,20 +12,22 @@" reason="Die konfigurierte IP wird ueber eine gemeinsame, puffergepruefte Systemschnittstelle bereitgestellt. Ungueltige Zielpuffer und abgeschnittene Ausgaben liefern einen Fehler statt eines scheinbar gueltigen Ergebnisses. Konkrete Diffzeilen (Eingefuegt): int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize); | #include &lt;stddef.h&gt;.">
+      <line kind="context" old="12" new="12">#include &lt;signal.h&gt;</line>
+      <line kind="context" old="13" new="13">#include &lt;stdlib.h&gt;</line>
+      <line kind="context" old="14" new="14">#include &lt;stdio.h&gt;</line>
+      <line kind="context" old="15" new="15">#include &lt;errno.h&gt;</line>
+      <line kind="context" old="16" new="16">#include &lt;unistd.h&gt;</line>
+      <line kind="add" new="17">#include &lt;stddef.h&gt;</line>
+      <line kind="context" old="17" new="18"></line>
+      <line kind="context" old="18" new="19"></line>
+      <line kind="context" old="19" new="20"></line>
+      <line kind="context" old="20" new="21">#define SERVO_PWM_ZOOM 26 // output channel 0 PWM for Servo</line>
+      <line kind="context" old="21" new="22"></line>
+      <line kind="context" old="22" new="23">// debug outputs</line>
+      <line kind="context" old="23" new="24">#define DEB_0 10</line>
+      <line kind="context" old="24" new="25"></line>
+      <line kind="context" old="25" new="26"></line>
+      <line kind="context" old="26" new="27">int SYSTEM_Initialize (void);</line>
+      <line kind="add" new="28">int SYSTEM_GetConfiguredIPAddress(char *ipAddress, size_t ipAddressSize);</line>
+      <line kind="context" old="27" new="29">void initTimer1(void);</line>
+      <line kind="context" old="28" new="30">void alarmWakeup(int sig_num);</line>
+      <line kind="context" old="29" new="31">extern long SYSTEM_map(long x, long in_min, long in_max, long out_min, long out_max);</line>
+      <line kind="context" old="30" new="32">extern void SYSTEM_PWM(int output, int pulseTime, int breakTime);</line>
+      <line kind="context" old="31" new="33"></line>
+    </hunk>
+  </file>
+  <file path="main.c" added="5" id="f12" deleted="0" status="geaendert">
+    <hunk id="f12-h1" marker="M028" header="@@ -141,17 +141,22 @@ int main(int argc, char *argv[])" reason="Die beim Build hinterlegte IP wird beim regulaeren Programmstart ausgegeben. Das erleichtert die Zuordnung von Binary und Zielkonfiguration; es konfiguriert weder die Netzwerkschnittstelle noch prueft es die Erreichbarkeit des Raspberry. Konkrete Diffzeilen (Eingefuegt): if(SYSTEM_GetConfiguredIPAddress(configuredIpAddress, sizeof(configuredIpAddress)) == 0) | char configuredIpAddress[64] = {0}; | printf(&quot;Configured IP address: %s\n&quot;, configuredIpAddress);.">
+      <line kind="context" old="141" new="141">	//short i = 1;</line>
+      <line kind="context" old="142" new="142">	//char *p = (char*) &amp;i;</line>
+      <line kind="context" old="143" new="143">	//char isLittleEndian = p[0];</line>
+      <line kind="context" old="144" new="144"></line>
+      <line kind="context" old="145" new="145">	unsigned char result = RASPI_AUTOMATION_SUCCESS;</line>
+      <line kind="add" new="146">	char configuredIpAddress[64] = {0};</line>
+      <line kind="context" old="146" new="147">	if(argc == 3)</line>
+      <line kind="context" old="147" new="148">	{</line>
+      <line kind="context" old="148" new="149">		if (SYSTEM_Initialize() != 0)</line>
+      <line kind="context" old="149" new="150">		{</line>
+      <line kind="context" old="150" new="151">			return RASPI_AUTOMATION_CALL_FAILURE;</line>
+      <line kind="context" old="151" new="152">		}</line>
+      <line kind="context" old="152" new="153">		initSystemTimer();</line>
+      <line kind="add" new="154">		if(SYSTEM_GetConfiguredIPAddress(configuredIpAddress, sizeof(configuredIpAddress)) == 0)</line>
+      <line kind="add" new="155">		{</line>
+      <line kind="add" new="156">			printf("Configured IP address: %s\n", configuredIpAddress);</line>
+      <line kind="add" new="157">		}</line>
+      <line kind="context" old="153" new="158">		ACinit();</line>
+      <line kind="context" old="154" new="159">		result = CIexecuteCommand(argv);</line>
+      <line kind="context" old="155" new="160">	}</line>
+      <line kind="context" old="156" new="161">	else</line>
+      <line kind="context" old="157" new="162">	{</line>
+    </hunk>
+  </file>
+  <file path="tests/audio_control_validation_test.c" added="132" id="f13" deleted="0" status="neu">
+    <hunk id="f13-h1" marker="M029" header="@@ -0,0 +1,132 @@" reason="Die neuen Regressionstests pruefen gueltige und fehlerhafte VOL-Antworten, exakten Profilvergleich, die Retry-Grenze sowie partielle, unterbrochene, fehlerhafte und Null-Writes. Das sind RasPi-C-Tests; die 65/65 Tests aus dem Abnahmebericht gehoeren zur getrennten Windows-Suite und werden hier nicht als eigene Ausfuehrung ausgewiesen. Konkrete Diffzeilen (Eingefuegt): static void assert_valid(const char *response, int channel, int expectedVolume) | assert(AC_ParseVolumeResponse(response, strlen(response), channel, &amp;parsedVolume, &amp;reason)); | static void assert_invalid(const char *response, size_t responseLength, int channel).">
+      <line kind="add" new="1">#include &lt;assert.h&gt;</line>
+      <line kind="add" new="2">#include &lt;stdio.h&gt;</line>
+      <line kind="add" new="3">#include &lt;string.h&gt;</line>
+      <line kind="add" new="4">#include &lt;errno.h&gt;</line>
+      <line kind="add" new="5"></line>
+      <line kind="add" new="6">#include "AudioControlValidation.h"</line>
+      <line kind="add" new="7">#include "AudioControlWrite.h"</line>
+      <line kind="add" new="8"></line>
+      <line kind="add" new="9">static ptrdiff_t writeResults[8];</line>
+      <line kind="add" new="10">static int writeErrors[8];</line>
+      <line kind="add" new="11">static size_t writeResultCount;</line>
+      <line kind="add" new="12">static size_t writeCallIndex;</line>
+      <line kind="add" new="13"></line>
+      <line kind="add" new="14">static ptrdiff_t fake_write(int fd, const char *buffer, size_t length)</line>
+      <line kind="add" new="15">{</line>
+      <line kind="add" new="16">	(void)fd;</line>
+      <line kind="add" new="17">	(void)buffer;</line>
+      <line kind="add" new="18">	(void)length;</line>
+      <line kind="add" new="19">	assert(writeCallIndex &lt; writeResultCount);</line>
+      <line kind="add" new="20">	ptrdiff_t result = writeResults[writeCallIndex];</line>
+      <line kind="add" new="21">	errno = writeErrors[writeCallIndex];</line>
+      <line kind="add" new="22">	++writeCallIndex;</line>
+      <line kind="add" new="23">	return result;</line>
+      <line kind="add" new="24">}</line>
+      <line kind="add" new="25"></line>
+      <line kind="add" new="26">static void set_write_script(const ptrdiff_t *results, const int *errors, size_t count)</line>
+      <line kind="add" new="27">{</line>
+      <line kind="add" new="28">	memcpy(writeResults, results, count * sizeof(results[0]));</line>
+      <line kind="add" new="29">	memcpy(writeErrors, errors, count * sizeof(errors[0]));</line>
+      <line kind="add" new="30">	writeResultCount = count;</line>
+      <line kind="add" new="31">	writeCallIndex = 0;</line>
+      <line kind="add" new="32">}</line>
+      <line kind="add" new="33"></line>
+      <line kind="add" new="34">static void assert_valid(const char *response, int channel, int expectedVolume)</line>
+      <line kind="add" new="35">{</line>
+      <line kind="add" new="36">	int parsedVolume = -1;</line>
+      <line kind="add" new="37">	const char *reason = NULL;</line>
+      <line kind="add" new="38">	assert(AC_ParseVolumeResponse(response, strlen(response), channel, &amp;parsedVolume, &amp;reason));</line>
+      <line kind="add" new="39">	assert(parsedVolume == expectedVolume);</line>
+      <line kind="add" new="40">	assert(strcmp(reason, "ok") == 0);</line>
+      <line kind="add" new="41">}</line>
+      <line kind="add" new="42"></line>
+      <line kind="add" new="43">static void assert_invalid(const char *response, size_t responseLength, int channel)</line>
+      <line kind="add" new="44">{</line>
+      <line kind="add" new="45">	int parsedVolume = 17;</line>
+      <line kind="add" new="46">	const char *reason = NULL;</line>
+      <line kind="add" new="47">	assert(!AC_ParseVolumeResponse(response, responseLength, channel, &amp;parsedVolume, &amp;reason));</line>
+      <line kind="add" new="48">	assert(parsedVolume == 17);</line>
+      <line kind="add" new="49">	assert(reason != NULL &amp;&amp; strcmp(reason, "ok") != 0);</line>
+      <line kind="add" new="50">}</line>
+      <line kind="add" new="51"></line>
+      <line kind="add" new="52">static void test_volume_response_parser(void)</line>
+      <line kind="add" new="53">{</line>
+      <line kind="add" new="54">	assert_valid("(VOL1:00)", 1, 0);</line>
+      <line kind="add" new="55">	assert_valid("(VOL2:50)", 2, 50);</line>
+      <line kind="add" new="56">	assert_valid("(VOL3:63)", 3, 63);</line>
+      <line kind="add" new="57">	assert_valid("(VOL4:31)", 4, 31);</line>
+      <line kind="add" new="58">	assert_invalid("(VOL1:00)", 9, 2);</line>
+      <line kind="add" new="59">	assert_invalid("(VOL2:99)", 9, 2);</line>
+      <line kind="add" new="60">	assert_invalid("(VOL2:5)", 8, 2);</line>
+      <line kind="add" new="61">	assert_invalid("(VOL2:AA)", 9, 2);</line>
+      <line kind="add" new="62">	assert_invalid("VOL2:50", 7, 2);</line>
+      <line kind="add" new="63">	assert_invalid("(VOL2:50", 8, 2);</line>
+      <line kind="add" new="64">	assert_invalid("", 0, 2);</line>
+      <line kind="add" new="65">	assert_invalid("(VOL2:5", 7, 2);</line>
+      <line kind="add" new="66">	assert_invalid("(VOL2:50)X", 10, 2);</line>
+      <line kind="add" new="67">}</line>
+      <line kind="add" new="68"></line>
+      <line kind="add" new="69">static void test_profile_comparison(void)</line>
+      <line kind="add" new="70">{</line>
+      <line kind="add" new="71">	const int requested[4] = {0, 50, 0, 31};</line>
+      <line kind="add" new="72">	const int exact[4] = {0, 50, 0, 31};</line>
+      <line kind="add" new="73">	const int wrongProfile[4] = {0, 31, 0, 56};</line>
+      <line kind="add" new="74">	const int oneStepOff[4] = {0, 50, 0, 30};</line>
+      <line kind="add" new="75"></line>
+      <line kind="add" new="76">	assert(AC_ProfileValuesMatch(requested, exact));</line>
+      <line kind="add" new="77">	assert(!AC_ProfileValuesMatch(requested, wrongProfile));</line>
+      <line kind="add" new="78">	assert(!AC_ProfileValuesMatch(requested, oneStepOff));</line>
+      <line kind="add" new="79">}</line>
+      <line kind="add" new="80"></line>
+      <line kind="add" new="81">static void test_profile_retry_decisions(void)</line>
+      <line kind="add" new="82">{</line>
+      <line kind="add" new="83">	assert(AC_GetProfileDecision(AC_SUCCESS, 1, 1) == AC_PROFILE_DECISION_SUCCESS);</line>
+      <line kind="add" new="84">	assert(AC_GetProfileDecision(AC_SUCCESS, 0, 1) == AC_PROFILE_DECISION_RETRY);</line>
+      <line kind="add" new="85">	assert(AC_GetProfileDecision(AC_SUCCESS, 1, 2) == AC_PROFILE_DECISION_SUCCESS);</line>
+      <line kind="add" new="86">	assert(AC_GetProfileDecision(AC_SUCCESS, 0, 2) == AC_PROFILE_DECISION_FAIL);</line>
+      <line kind="add" new="87">	assert(AC_GetProfileDecision(AC_SUCCESS, 0, 3) == AC_PROFILE_DECISION_FAIL);</line>
+      <line kind="add" new="88">	assert(AC_PROFILE_VERIFY_FAILED == 40);</line>
+      <line kind="add" new="89">	assert(AC_GetProfileDecision(AC_INVALID_RESPONSE, 0, 1) == AC_PROFILE_DECISION_FAIL);</line>
+      <line kind="add" new="90">	assert(AC_GetProfileDecision(AC_TX_FAILED, 0, 1) == AC_PROFILE_DECISION_FAIL);</line>
+      <line kind="add" new="91">}</line>
+      <line kind="add" new="92"></line>
+      <line kind="add" new="93">static void test_write_all(void)</line>
+      <line kind="add" new="94">{</line>
+      <line kind="add" new="95">	const char payload[] = "abcdef";</line>
+      <line kind="add" new="96">	size_t written = 0;</line>
+      <line kind="add" new="97">	int errorNumber = 0;</line>
+      <line kind="add" new="98">	const ptrdiff_t partialWrites[] = {2, 1, 3};</line>
+      <line kind="add" new="99">	const int noErrors[] = {0, 0, 0};</line>
+      <line kind="add" new="100">	const ptrdiff_t interruptedWrite[] = {-1, 6};</line>
+      <line kind="add" new="101">	const int interruptedErrors[] = {EINTR, 0};</line>
+      <line kind="add" new="102">	const ptrdiff_t failedAfterPartial[] = {2, -1};</line>
+      <line kind="add" new="103">	const int failedErrors[] = {0, EIO};</line>
+      <line kind="add" new="104">	const ptrdiff_t zeroWrite[] = {0};</line>
+      <line kind="add" new="105">	const int zeroErrors[] = {0};</line>
+      <line kind="add" new="106"></line>
+      <line kind="add" new="107">	set_write_script(partialWrites, noErrors, 3);</line>
+      <line kind="add" new="108">	assert(AC_WriteAllWith(1, payload, 6, fake_write, &amp;written, &amp;errorNumber) == AC_SUCCESS);</line>
+      <line kind="add" new="109">	assert(written == 6 &amp;&amp; errorNumber == 0);</line>
+      <line kind="add" new="110"></line>
+      <line kind="add" new="111">	set_write_script(interruptedWrite, interruptedErrors, 2);</line>
+      <line kind="add" new="112">	assert(AC_WriteAllWith(1, payload, 6, fake_write, &amp;written, &amp;errorNumber) == AC_SUCCESS);</line>
+      <line kind="add" new="113">	assert(written == 6 &amp;&amp; errorNumber == 0);</line>
+      <line kind="add" new="114"></line>
+      <line kind="add" new="115">	set_write_script(failedAfterPartial, failedErrors, 2);</line>
+      <line kind="add" new="116">	assert(AC_WriteAllWith(1, payload, 6, fake_write, &amp;written, &amp;errorNumber) == AC_TX_FAILED);</line>
+      <line kind="add" new="117">	assert(written == 2 &amp;&amp; errorNumber == EIO);</line>
+      <line kind="add" new="118"></line>
+      <line kind="add" new="119">	set_write_script(zeroWrite, zeroErrors, 1);</line>
+      <line kind="add" new="120">	assert(AC_WriteAllWith(1, payload, 6, fake_write, &amp;written, &amp;errorNumber) == AC_TX_FAILED);</line>
+      <line kind="add" new="121">	assert(written == 0 &amp;&amp; errorNumber == EIO);</line>
+      <line kind="add" new="122">}</line>
+      <line kind="add" new="123"></line>
+      <line kind="add" new="124">int main(void)</line>
+      <line kind="add" new="125">{</line>
+      <line kind="add" new="126">	test_volume_response_parser();</line>
+      <line kind="add" new="127">	test_profile_comparison();</line>
+      <line kind="add" new="128">	test_profile_retry_decisions();</line>
+      <line kind="add" new="129">	test_write_all();</line>
+      <line kind="add" new="130">	puts("AudioControl validation tests passed");</line>
+      <line kind="add" new="131">	return 0;</line>
+      <line kind="add" new="132">}</line>
+    </hunk>
+  </file>
+  
+<references description="Audio-Profile erst nach bestaetigter Mixer-Ruecklesung erfolgreich melden; PTZ-Modus und Buildkonfiguration eindeutig steuern."><reference id="R01" path="I:\MyGitRepos\JoKiAutomation\Testreports\JokiAutomation_Audio_Pipeline_Lifetime_Fix_Abnahmebericht.pdf" sha256="C2303721E598E07A437E0DD6D7ADCCC8680E3317C90A4F5F2F8945782BC2565C">JokiAutomation
+
+Audio-Pipeline Lifetime Fix
+
+Technischer Abnahme- und Logpr├╝fbericht
+
+GESAMTSTATUS: PASS
+
+Pr├╝fdatum: 22.10.2026
+Pr├╝fgegenstand: Verlust des ersten Audio-Requests bei PowerPoint-/CLI-gesteuerten Szenen
+Fokus: Predigt, Command 30 / ID 114, Raspberry AudioControl, Mixer-R├╝cklesung und
+EventTimer-Handoff
+
+Kurzfazit
+
+Der urspr├╝ngliche Fehler wurde auf die Lebensdauer eines fire-and-forget
+Audioauftrags zur├╝ckgef├╝hrt. Der korrigierte Minimalfix erh├ñlt die Parallelit├ñt von
+Audio und PTZ/Video, wartet jedoch vor dem erfolgreichen Abschluss des
+Kommandos auf die konkrete Audio-Completion. Die hardwarefreien Tests, beide
+x64-Builds und die heutigen Real-Logs best├ñtigen den vorgesehenen Ablauf.
+
+Pr├╝fpunkt                                     Ergebnis     Nachweis
+
+Erster dokumentierter                         PASS         Command 30 / ID 114 erreicht den Raspberry.
+Predigt-Aufruf
+                                              PASS         Profil 2 wird als 0,50,0,31 zur├╝ckgelesen und
+Reale Mixer-Verifikation                                   mit match=1 best├ñtigt.
+
+Altes Fehlerbild                              NEIN REPROD  Kein gepr├╝fter Predigt-Lauf zeigt
+                                              UZIERT       Windows-Erfolg ohne Raspberry-Audioauftrag.
+
+Quellenbasis
+
+ ÔÇó 20261022_172434_RasPiAutomationLog.txt
+ ÔÇó 20261022_172434_RasPi_RasPi_AudioControl.log
+ ÔÇó 20261022_172434_EventTimerLog.txt
+ ÔÇó Ergebnisse der statischen Codepr├╝fung sowie Build- und Testbericht aus der Umsetzung
+
+JokiAutomation - Audio-Pipeline Lifetime Fix                                                              Seite 1
+1. Fehlerbild und best├ñtigte Root Cause
+
+Beobachtung vor dem Fix
+
+Beim ersten Predigt-Aufruf konnte JokiAutomation das Kommando erfolgreich abschlie├ƒen, obwohl der
+zugeh├Ârige Raspberry-Befehl noch nicht gestartet oder best├ñtigt war. In einem fr├╝heren Fehlerlauf
+fehlte daher der erwartete Command 30 / ID 114 im AudioControl-Log; erst ein zweiter Predigt-Aufruf
+schaltete das Tonprofil.
+
+Technische Ursache
+
+QueueAudioProfileByNameAsync meldete bei waitForCompletion:false Erfolg, sobald der Auftrag auf
+_audioPipelineTail eingereiht war. CommandInterpreterAsync wertete dieses Ergebnis bereits als
+Erfolg. Dadurch konnte der CLI-/Form-Lifecycle enden, bevor die asynchrone Continuation den
+SSH-Aufruf ausf├╝hrte.
+
+Predigt
+-&gt; Audioauftrag queued
+-&gt; QueueAudioProfileByNameAsync = true
+-&gt; CommandInterpreterAsync = Success
+-&gt; CLI/Form kann enden
+-&gt; SSH-Auftrag startet sp├ñter oder geht mit dem Prozess verloren
+
+Reproduktion in Phase A
+
+ ÔÇó Der hardwarefreie Regressionstest verwendet den echten ├Âffentlichen
+   CommandInterpreterAsync("Predigt")-Pfad.
+
+ ÔÇó Der FakeRasPiCommandExecutor blockiert seine Completion ├╝ber ein kontrolliertes Gate.
+ ÔÇó Vor dem Fix meldete der Request Erfolg, obwohl der Executor noch nicht abgeschlossen war.
+ ÔÇó Command 30 / ID 114 wurde zwar final aufgezeichnet, aber die Completion lag nach dem bereits
+
+   gemeldeten Lifecycle-Erfolg.
+
+Damit war bewiesen, dass queued und completed f├ñlschlich gleichgesetzt wurden.
+
+2. Korrigierter Minimalfix
+
+Der erste Fix wartete direkt in QueueAudioProfileByNameAsync und machte Audio dadurch
+unbeabsichtigt sequenziell vor PTZ/Video. Dieser Zwischenstand wurde verworfen.
+
+Finaler Ansatz
+
+ ÔÇó QueueAudioProfileByNameAsync reiht den Audioauftrag wieder sofort ein und kehrt nach dem Queuen
+   zur├╝ck.
+
+ ÔÇó QueueAudioProfileDispatch liefert den konkreten Completion-Task dieses Audiosegments ├╝ber eine
+   lokale TaskCompletionSource.
+
+ ÔÇó Der Task wird im Single-Slot-Feld _pendingAudioCompletionTask abgelegt.
+ ÔÇó PTZ-, Video- und ATEM-Arbeit kann danach parallel weiterlaufen.
+ ÔÇó Am Ende des switch-Blocks konsumiert AwaitPendingAudioCompletionAsync den Task via
+
+   Interlocked.Exchange genau einmal.
+ ÔÇó CommandExitCodes.Success wird erst nach erfolgreicher Audio-Completion gesetzt.
+ ÔÇó Exceptions und Raspberry-Exitcodes 38/39/40 werden zum CommandInterpreter weitergereicht.
+ ÔÇó Es gibt keinen automatischen C#-Retry der gesamten Szene.
+
+Audio enqueuen ---------------------&gt; Audio/SSH l├ñuft
+|
++--&gt; PTZ / Video / ATEM laufen parallel
+
+Ende des Command-switch
+-&gt; AwaitPendingAudioCompletionAsync()
+-&gt; Success nur nach Audio-Completion
+
+JokiAutomation - Audio-Pipeline Lifetime Fix  Seite 2
+-&gt; Failure bei Audio-/SSH-Fehler
+
+Die vorhandene _audioPipelineTail bleibt als Serialisierungsmechanismus bestehen und wird bei
+Segmentfehlern nicht dauerhaft gefaultet. Nachfolgende Audioauftr├ñge k├Ânnen dadurch weiterhin
+abgearbeitet werden.
+
+JokiAutomation - Audio-Pipeline Lifetime Fix                                                   Seite 3
+3. Statische Sicherheitspr├╝fung des
+Single-Slot-Feldes
+
+Die Verwendung von _pendingAudioCompletionTask als einzelner Slot wurde statisch gepr├╝ft. F├╝r den
+aktuellen Minimalfix ist kein zus├ñtzliches Dictionary oder Request-Tracking erforderlich.
+
+Pr├╝fpunkt                                     Ergebnis     Nachweis
+
+Maximal ein Queue-Aufruf je                   BEST├äTIGT    Alle acht Aufrufstellen liegen in getrennten
+Command                                                    case-Zweigen desselben switch(cmd).
+
+Fallthrough oder zweiter Aufruf               NEIN REPROD  Jeder relevante Case endet mit break oder
+im Case                                       UZIERT       fr├╝hem return.
+
+Schleife um Audio-Queueing                    NEIN REPROD  Vorhandene Schleifen betreffen andere
+                                              UZIERT       Teilmethoden.
+
+Rekursion von                                 NEIN REPROD  Kein Selbstaufruf in Form1.cs.
+CommandInterpreterAsync                       UZIERT
+
+Parallele CLI-Requests                        NEIN REPROD  ExecuteOnUiThreadAsync/ExecuteDispatchedCo
+                                              UZIERT       mmandAsync serialisiert ├╝ber _commandLock.
+
+Fazit der statischen Pr├╝fung
+
+_pendingAudioCompletionTask kann innerhalb eines
+CommandInterpreterAsync-Durchlaufs nicht durch einen zweiten Audioauftrag
+├╝berschrieben werden. Auch mehrere externe CLI-Aufrufe laufen wegen
+_commandLock nicht gleichzeitig durch denselben Slot.
+
+4. Build- und Testvalidierung
+
+Pr├╝fpunkt                                     Ergebnis     Nachweis
+
+Gezielter                                     PASS         PowerPointLike_PredigtRequest_SurvivesFormA
+Lifetime-Regressionstest                                   ndCliCompletion
+
+Gesamte hardwarefreie Suite                   PASS         65 von 65 Tests bestanden.
+
+Debug x64 Rebuild                             PASS         0 Fehler.
+
+Release x64 Rebuild                           PASS         0 Fehler.
+
+Raspberry-Code                                PASS         Unver├ñndert.
+
+Neue zus├ñtzliche Tests                        PASS         Keine weitere Aufbl├ñhung des Testprojekts.
+
+Der Regressionstest beweist dabei drei Aspekte gleichzeitig: Der Executor startet w├ñhrend der CLI-Call
+noch l├ñuft, der CLI-Call bleibt bis zur Hardware-Completion pending, und erst nach Freigabe des Gates
+wird Success zur├╝ckgegeben.
+
+JokiAutomation - Audio-Pipeline Lifetime Fix                                                             Seite 4
+5. Heutige Real-Logpr├╝fung: die drei Hauptpunkte
+
+Punkt 1 - Erster Predigt-Aufruf erreicht den Raspberry
+
+Im Windows-Log startet um 17:12:38 ein Predigt-Aufruf unter PID 7180. Um 17:12:43 protokolliert
+AudioControl den zugeh├Ârigen Befehl command=30 index=114 und beginnt Profil 2. Damit ist f├╝r
+diesen Lauf belegt, dass der dokumentierte Predigt-Aufruf ID 114 tats├ñchlich bis zum Raspberry bringt.
+
+22.10.2026 17:12:38 MAIN_ENTER Args="Predigt"
+[2026-10-22 17:12:43] COMMAND pid=3311 command=30 index=114
+[2026-10-22 17:12:43] REQUESTED_PROFILE index=2 values=0,50,0,31
+
+Punkt 2 - Reale Mixer-Verifikation f├╝r Profil 2
+
+Der Mixerzustand wird nach der Ausf├╝hrung zur├╝ckgelesen. Um 17:13:22 stimmen Soll und Ist ├╝berein:
+requested=0,50,0,31 und actual=0,50,0,31. AudioControl protokolliert match=1 und
+AC_PROFILE_SUCCESS. Ein weiterer erfolgreicher Profil-2-Abschluss ist um 17:18:26 dokumentiert.
+
+[2026-10-22 17:13:22] AC_PROFILE_READ_AFTER ... requested=0,50,0,31 actual=0,50,0,31 result=0
+[2026-10-22 17:13:22] AC_PROFILE_VERIFY ... match=1 result=0
+[2026-10-22 17:13:22] AC_PROFILE_SUCCESS ... result=0
+
+Punkt 3 - Altes Fehlerbild nicht mehr reproduziert
+
+In den gepr├╝ften heutigen Predigt-Abl├ñufen wurde das fr├╝here Muster "Windows
+meldet Erfolg, aber kein ID-114-Auftrag erreicht den Raspberry" nicht gefunden.
+Stattdessen besteht die geschlossene Kette Predigt -&gt; ID 114 -&gt; Profil 2 -&gt;
+READ_AFTER -&gt; VERIFY match=1 -&gt; SUCCESS.
+
+Pr├╝fpunkt                                     Ergebnis     Nachweis
+
+Erster dokumentierter                         PASS         17:12:38 Windows-Start, 17:12:43 Raspberry
+Predigt-Aufruf -&gt; ID 114                                   COMMAND index=114.
+
+Soll-/Ist-Abgleich Profil 2                   PASS         0,50,0,31 entspricht 0,50,0,31.
+
+AC_PROFILE_VERIFY                             PASS         match=1, result=0.
+
+AC_PROFILE_SUCCESS                            PASS         Erfolgreicher Abschluss dokumentiert.
+
+AC_PROFILE_FAIL im gepr├╝ften                  NEIN REPROD  Kein Fehlerabschluss im herangezogenen
+Profil-2-Ablauf                               UZIERT       Ablauf.
+
+Zweiter Benutzerstart                         NEIN REPROD  Der gepr├╝fte Predigt-Aufruf sendet ID 114.
+erforderlich                                  UZIERT
+
+JokiAutomation - Audio-Pipeline Lifetime Fix                                                           Seite 5
+6. EventTimer- und Lifecycle-Nebenbefund
+
+Das EventTimer-Log enth├ñlt zwei dokumentierte Ctrl+S-/Altar-Handoffs. Beide erzeugen einen
+JokiAutomation-Prozess im Detached-Modus, melden JOKI_ALTAR_HANDOFF_SUCCESS und enden mit
+EVENTTIMER_MAIN_EXIT ExitCode=0.
+
+17:05:26 CTRL_S_DETECTED
+17:05:27 JOKI_ALTAR_HANDOFF_SUCCESS ChildPid=5108
+17:05:27 EVENTTIMER_MAIN_EXIT ExitCode=0
+
+17:23:39 CTRL_S_DETECTED
+17:23:40 JOKI_ALTAR_HANDOFF_SUCCESS ChildPid=13400
+17:23:40 EVENTTIMER_MAIN_EXIT ExitCode=0
+
+Der EventTimer-Nebenpfad zeigt in den bereitgestellten Eintr├ñgen weder einen dokumentierten
+Fehlerabschluss noch einen Timeout.
+
+7. Gesamtabnahme
+
+Pr├╝fpunkt                                     Ergebnis     Nachweis
+
+Root Cause reproduziert                       PASS         Queued wurde vor dem Fix als Completed
+                                                           interpretiert.
+
+Minimalfix umgesetzt                          PASS         Konkreter Segment-Task plus zentrales Await
+                                                           am Ende des Commands.
+
+Audio/PTZ-Parallelit├ñt                        PASS         Audio wird fr├╝h gestartet; Completion wird erst
+                                                           am Command-Ende abgewartet.
+
+Single-Slot-Sicherheit                        PASS         Statisch f├╝r aktuelle Switch- und Lock-Struktur
+                                                           best├ñtigt.
+
+Hardwarefreie Regression                      PASS         65/65 Tests.
+
+x64 Builds                                    PASS         Debug und Release ohne Fehler.
+
+Real-Hardware Predigt                         PASS         ID 114 erreicht den Raspberry und Profil 2 wird
+                                                           verifiziert.
+
+Urspr├╝nglicher Lifetime-Fehler                NEIN REPROD  In den gepr├╝ften heutigen Abl├ñufen nicht erneut
+                                              UZIERT       sichtbar.
+
+Abschlussbewertung
+
+Der Audio-Pipeline Lifetime Fix ist f├╝r den gepr├╝ften Stand technisch und logseitig
+best├ñtigt. Der erste dokumentierte Predigt-Aufruf erreicht den Raspberry; der
+Mixer liefert den erwarteten Zustand zur├╝ck; JokiAutomation wartet vor dem
+erfolgreichen Kommandoabschluss auf die zugeh├Ârige Audio-Completion. Weitere
+Produktions├ñnderungen oder zus├ñtzliche Tests sind f├╝r diesen konkreten Fehler
+derzeit nicht angezeigt.
+
+8. Quellen und Nachweisdateien
+
+ ÔÇó 20261022_172434_RasPiAutomationLog.txt - Windows-/CLI-/Lifecycle-Abl├ñufe
+
+JokiAutomation - Audio-Pipeline Lifetime Fix                                                       Seite 6
+ ÔÇó 20261022_172434_RasPi_RasPi_AudioControl.log - Raspberry-Kommandos, Mixer-Readback, Verify
+   und Success
+
+ ÔÇó 20261022_172434_EventTimerLog.txt - Ctrl+S-/Altar-Handoff und EventTimer-Exit
+ ÔÇó Phase-A-/Phase-B-Umsetzungsbericht - Root Cause, Minimalfix, statische Pr├╝fung, Test- und
+
+   Buildstatus
+
+Hinweis zur Aussagekraft
+
+Der Bericht best├ñtigt den in den bereitgestellten Logs sichtbaren technischen Ablauf. Die protokollierte Mixer-R├╝cklesung
+weist den eingestellten Sollzustand nach; eine rein akustische Bewertung des gesamten Signalwegs ist davon getrennt.
+
+JokiAutomation - Audio-Pipeline Lifetime Fix  Seite 7
+</reference></references></sourceDiffReport>

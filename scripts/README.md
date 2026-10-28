@@ -2,6 +2,63 @@
 
 This directory contains helper scripts for building (Windows/PowerShell) and portable reconfiguration when changing computers/drives.
 
+## Source-Code-Diff als VS-Code-Task
+
+Es gibt zwei Tasks im aktuellen RasPiAutomation-Workspace:
+
+- **CodeDiff: Source-Report (C/H)** verwendet [codediff.raspi.json](codediff.raspi.json).
+- **CodeDiff: JoKiAutomation Source-Report (C#)** verwendet [codediff.csharp.json](codediff.csharp.json) und liest das benachbarte Repository `../../JokiAutomation` relativ zum Profil.
+
+Die JSON-Profile enthalten `projectName`, `repositoryPath`, `outputDirectory`
+und `extensions`. Pfade im Profil sind relativ zur JSON-Datei. Der C#-Task
+filtert ausschliesslich `.cs`; der C/H-Task weiterhin `.c` und `.h`.
+Der C#-Report wird getrennt unter `Docu/CodeDiff/CSharp/` abgelegt und erhaelt
+`_generated` im Dateinamen. Der RasPi-Task aktualisiert den Report ohne diesen
+Zusatz unter `Docu/CodeDiff/`.
+Das fremde Repository wird nicht veraendert. Beide Tasks fragen dieselben vier
+Felder ab; relative Referenzpfade beziehen sich auf das jeweils verglichene
+Repository. Tags und Commit-IDs werden ebenfalls dort aufgeloest.
+
+Beispiel fuer den C#-Report:
+
+```powershell
+.\scripts\generate_source_diff_report.ps1 -ConfigPath .\scripts\codediff.csharp.json -OldTag JOKI_T1010_PIGPIO -NewTag JOKI_T1011_PIPES -ReferencePaths '..\Testreports\JokiAutomation_Audio_Pipeline_Lifetime_Fix_Abnahmebericht.pdf'
+```
+
+Unter **Terminal > Run Task** den Task **CodeDiff: Source-Report (C/H)** starten.
+Die Eingaben erscheinen in dieser Reihenfolge:
+
+1. Neuer Git-Stand: Tag oder Commit-ID.
+2. Alter Git-Stand: Tag oder Commit-ID.
+3. Optional: Referenzdateien als absolute oder workspace-relative Pfade, mit Semikolon getrennt. Unterstuetzt werden PDF, TXT, MD und LOG. Leer lassen, wenn keine Referenzen vorliegen.
+4. Optional: kurze fachliche Begruendung, warum die Aenderung eingebaut wurde.
+
+Der Task erzeugt ausschliesslich fuer geaenderte `.c`- und `.h`-Dateien einen
+HTML-Report und eine fuehrende XML-Datenbasis im konfigurierten Ausgabeordner.
+Ein erneuter Lauf mit denselben Eingaben fuer Alt/Neu ersetzt die Reportdateien
+dieses Profils. Der RasPi-Report verwendet keinen Suffix; C# verwendet
+`_generated`, um die generierte Ausgabe zu kennzeichnen. Ausgabepfade werden
+im Task-Terminal ausgegeben.
+
+Syntaxhervorhebung, deutsche Kontextkommentare und Marker mit Ruecksprung zur
+Codezeile sind enthalten. Die eingegebene Begruendung gilt fuer den Vergleich;
+dateibezogene Commit-Nachrichten und maximal drei Referenzstellen je Diff-Block
+ergaenzen sie. Die Referenzsuche verwendet gleiche Codebezeichner. Treffer sind
+keine automatische fachliche Bewertung oder Abnahme und muessen geprueft werden.
+Ohne passende Referenz wird dies im Kommentar kenntlich gemacht.
+
+Referenzen werden nur gelesen, mit SHA256 dokumentiert und als extrahierter Text
+in XML und HTML eingebettet. Daher nur Dokumente verwenden, deren Inhalt im
+Report weitergegeben werden darf. PDF benoetigt `pdftotext.exe` im PATH oder unter
+`C:\Program Files\Git\mingw64\bin`; gescannte PDFs ohne Text benoetigen vorher OCR.
+Es werden weder Build noch Tests oder fremde Berichtsgeneratoren gestartet.
+
+Direkter Aufruf:
+
+```powershell
+.\scripts\generate_source_diff_report.ps1 -OldTag JOKI_T1010_PIGPIO -NewTag JOKI_T1011_PIPES -GeneralReport -ReferencePaths 'C:\Reports\Abnahme.pdf;README.md' -Description 'Fehler beim ersten Profilwechsel beheben.'
+```
+
 ## build4newDrive.ps1
 
 Purpose:

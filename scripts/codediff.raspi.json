@@ -1,0 +1,7 @@
+{
+  "projectName": "RasPiAutomation",
+  "repositoryPath": "..",
+  "outputDirectory": "../Docu/CodeDiff",
+  "generatedSuffix": false,
+  "extensions": [".c", ".h"]
+}

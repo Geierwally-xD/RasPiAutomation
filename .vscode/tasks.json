@@ -1,6 +1,64 @@
 {
   "version": "2.0.0",
   "tasks": [
+    {
+      "label": "CodeDiff: Source-Report (C/H)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\generate_source_diff_report.ps1",
+        "-ConfigPath",
+        "${workspaceFolder}\\scripts\\codediff.raspi.json",
+        "-FromTaskEnvironment"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CODEDIFF_NEW": "${input:codeDiffNew}",
+          "CODEDIFF_OLD": "${input:codeDiffOld}",
+          "CODEDIFF_REFERENCES": "${input:codeDiffReferences}",
+          "CODEDIFF_DESCRIPTION": "${input:codeDiffDescription}"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "CodeDiff: JoKiAutomation Source-Report (C#)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\generate_source_diff_report.ps1",
+        "-ConfigPath",
+        "${workspaceFolder}\\scripts\\codediff.csharp.json",
+        "-FromTaskEnvironment"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CODEDIFF_NEW": "${input:codeDiffNew}",
+          "CODEDIFF_OLD": "${input:codeDiffOld}",
+          "CODEDIFF_REFERENCES": "${input:codeDiffReferences}",
+          "CODEDIFF_DESCRIPTION": "${input:codeDiffDescription}"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
     // ── Configure ───────────────────────────────────────────────────────────
     {
       "label": "Configure (RasPi Debug)",
@@ -284,6 +342,32 @@
         "panel": "shared",
         "focus": true
       }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "codeDiffNew",
+      "type": "promptString",
+      "description": "Neuer Git-Stand: Tag oder Commit-ID",
+      "default": "JOKI_T1011_PIPES"
+    },
+    {
+      "id": "codeDiffOld",
+      "type": "promptString",
+      "description": "Alter Git-Stand: Tag oder Commit-ID",
+      "default": "JOKI_T1010_PIGPIO"
+    },
+    {
+      "id": "codeDiffReferences",
+      "type": "promptString",
+      "description": "Optional: Referenzdateien (PDF/TXT/MD/LOG), Pfade mit Semikolon trennen; leer = keine",
+      "default": ""
+    },
+    {
+      "id": "codeDiffDescription",
+      "type": "promptString",
+      "description": "Optional: Warum wurde die Aenderung eingebaut? Kontext fuer die Codekommentare",
+      "default": ""
     }
   ]
 }
